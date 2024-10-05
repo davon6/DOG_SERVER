@@ -19,6 +19,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes setup
 app.use('/', indexRouter);
+app.use('/users', userRoutes);  // Make sure this is included in your routes setup
 app.use('/user', userRoutes);  // Use the /user route for anything in userRoutes
 
 app.use((req, res, next) => {
