@@ -2,6 +2,11 @@ const { poolPromise } = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/userModel');
+const fs = require('fs');
+const path = require('path'); // Useful for resolving the path to the private key file
+
+const privateKey = fs.readFileSync(path.join(__dirname, '../config/private.pem'), 'utf8');
+
 
 const getUsers = async (req, res) => {
     try {
@@ -72,29 +77,28 @@ const signup = async (req, res) => {
 const signin = async (req, res) => {
     const { username, password } = req.body;
 
+
     try {
-        // Find user by username
         const user = await UserModel.findUserByUsername(username);
-        
+
+       
+
         if (!user) return res.status(400).json({ message: 'Invalid username or password' });
 
-        // Compare the password with the hashed password
+        console.log("seems that user found"+ user,"now matching password");
+
         const isMatch = await bcrypt.compare(password, user.PASSWORD);
         if (!isMatch) return res.status(400).json({ message: 'Invalid username or password' });
+        console.log("they match !!!!");
+        // Generate JWT Token with RS256
+        const token = jwt.sign({ userId: user.ID }, privateKey, { algorithm: 'RS256', expiresIn: '1h' });
 
-        // Generate JWT Token
-        const token = jwt.sign({ userId: user.ID }, 'YOUR_SECRET_KEY', { expiresIn: '1h' });
+        console.log("did we get a token", token)
         res.json({ token });
     } catch (err) {
-        res.status(500).json({ message: 'Error signing in', error: err.message });
+        res.status(500).send({ message: 'Error signing in', error: err.message });
     }
 };
-
-
-
-
-
-
 
 
 module.exports = {

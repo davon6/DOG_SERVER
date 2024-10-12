@@ -37,19 +37,30 @@ const createUser = async (username, email, password) => {
 };
 
 // Find User by Username
-/*
+
 const findUserByUsername = async (username) => {
+    console.log("Finding user by username:", username); // Debugging log
+
     const pool = await poolPromise;
+
+    // Use a parameterized query to avoid SQL Injection
     const result = await pool.request()
         .input('username', username)
-        .query('SELECT * FROM USER_DOG WHERE USER_NAME = @username');
+        .query('SELECT * FROM USERS WHERE USERNAME = @username'); // Adjust the table name as needed
 
+    // Check if any user was found
+    if (result.recordset.length === 0) {
+        console.log("User not found");
+        return null; // Return null if no user is found
+    }
+
+    console.log("User found:", result.recordset[0]);
     return result.recordset[0]; // Return the found user
 };
-*/
+
 // Other user-related database operations can be added here as needed
 
 module.exports = {
     createUser,
-  //  findUserByUsername,
+    findUserByUsername,
 };
