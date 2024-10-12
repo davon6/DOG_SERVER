@@ -2,13 +2,19 @@ const express = require('express');
 const router = express.Router();
 const userController = require('../controllers/userController');
 const verifyToken = require('../middleware/verifyToken');
+const fs = require('fs');
+const path = require('path');
+const jwt = require('jsonwebtoken');
+
+const privateKey = fs.readFileSync(path.join(__dirname, '../config/private.pem'), 'utf8');
+
 
 router.get('/', userController.getUsers);
 
 //router.post('/find', userController.findUserByUsername);  // Route to handle POST requests
 
 
-router.post('/find', (req, res, next) => {
+router.post('/find', verifyToken, (req, res, next) => {
     console.log('Received POST request on /user/find'); // Debugging log
 
     console.log("Username from body: " + req.body.username)
@@ -33,6 +39,40 @@ router.post('/signin', (req, res, next) => {
     console.log('Received POST request on /signin'); // Debugging log
     userController.signin(req, res, next); // Call signin controller directly
 });
+
+
+// Refresh token endpoint
+router.post('/token/refresh', (req, res) => {
+    // Extract refreshToken directly from req.body
+    const { refreshToken } = req.body;
+
+    console.log("the refresh token req.body.refreshToken: ", refreshToken);
+
+    if (!refreshToken) {
+        console.log("token refresh NOT detected properly");
+        return res.sendStatus(401);  // No refresh token provided
+    }
+
+    console.log("token refresh detected properly");
+
+    // Pass the refreshToken directly to jwt.verify
+    jwt.verify(refreshToken, privateKey, { algorithm: 'RS256' }, (err, user) => {
+        if (err) {
+            console.log("Error verifying refresh token:", err);
+            return res.sendStatus(403);  // Invalid refresh token
+        }
+
+        console.log("Refresh token verified, generating new access token");
+
+        // If the token is valid, generate a new access token
+        const accessToken = jwt.sign({ userId: user.userId }, privateKey, { algorithm: 'RS256', expiresIn: '10s' });//15m
+
+        // Send the new access token as JSON
+        return res.json({ accessToken });
+    });
+});
+
+
 
 
 /*

@@ -91,10 +91,18 @@ const signin = async (req, res) => {
         if (!isMatch) return res.status(400).json({ message: 'Invalid username or password' });
         console.log("they match !!!!");
         // Generate JWT Token with RS256
-        const token = jwt.sign({ userId: user.ID }, privateKey, { algorithm: 'RS256', expiresIn: '1h' });
+        const token = jwt.sign({ userId: user.ID }, privateKey, { algorithm: 'RS256', expiresIn: '10s' });//1h
 
         console.log("did we get a token", token)
-        res.json({ token });
+
+         // Generate Refresh Token (longer expiration)
+        const refreshToken = jwt.sign({ userId: user.ID }, privateKey, { algorithm: 'RS256', expiresIn: '7d' });
+
+
+      //  console.log("token 1"+token+"    token 2   "+refreshToken);
+   // Return both tokens
+   res.json({ token, refreshToken });
+        //res.json({ token });
     } catch (err) {
         res.status(500).send({ message: 'Error signing in', error: err.message });
     }
