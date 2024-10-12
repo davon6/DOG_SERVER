@@ -15,4 +15,17 @@ router.post('/find', (req, res, next) => {
     userController.findUserByUsername(req, res, next);
 });
 
+
+
+// Sign Up Route
+//router.post('/signup', userController.signup);
+router.post('/signup', (req, res, next) => {
+  //  console.log('Received POST request on /signup'); // Debugging log
+    userController.signup(req, res, next);
+});
+
+// Sign In Route
+router.post('/signin', userController.signin);
+
+
 module.exports = router;

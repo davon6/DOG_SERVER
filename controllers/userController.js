@@ -1,4 +1,7 @@
 const { poolPromise } = require('../config/db');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const UserModel = require('../models/userModel');
 
 const getUsers = async (req, res) => {
     try {
@@ -46,8 +49,57 @@ const findUserByUsername = async (req, res) => {
 
 
 
+// Sign Up Handler
+const signup = async (req, res) => {
+    const { username, email, password } = req.body;
+
+    try {
+        // Hash the password
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
+        // Create new user in the database
+        const newUser = await UserModel.createUser(username, email, hashedPassword);
+        
+        res.status(201).json({ message: 'User created successfully', userId: newUser.ID });
+    } catch (err) {
+        res.status(500).json({ message: 'Error creating user', error: err.message });
+    }
+};
+
+
+
+// Sign In Handler
+const signin = async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        // Find user by username
+        const user = await UserModel.findUserByUsername(username);
+        
+        if (!user) return res.status(400).json({ message: 'Invalid username or password' });
+
+        // Compare the password with the hashed password
+        const isMatch = await bcrypt.compare(password, user.PASSWORD);
+        if (!isMatch) return res.status(400).json({ message: 'Invalid username or password' });
+
+        // Generate JWT Token
+        const token = jwt.sign({ userId: user.ID }, 'YOUR_SECRET_KEY', { expiresIn: '1h' });
+        res.json({ token });
+    } catch (err) {
+        res.status(500).json({ message: 'Error signing in', error: err.message });
+    }
+};
+
+
+
+
+
+
+
 
 module.exports = {
     getUsers,
-    findUserByUsername  
+    findUserByUsername,
+    signup,
+    signin,
 };
