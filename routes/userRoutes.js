@@ -34,19 +34,10 @@ router.post('/signin', (req, res, next) => {
     userController.signin(req, res, next); // Call signin controller directly
 });
 
-/*
-router.post('/signin',verifyToken, (req, res, next) => {
-      console.log('Received POST request on /signin'); // Debugging log
-      userController.signin(req, res, next);
-  });
-*/
 
 /*
 // Protected route example
 router.get('/profile', verifyToken, userController.getProfile); // Only accessible if the token is valid
-
-// Other protected routes can follow the same pattern
-router.get('/another-protected-route', verifyToken, userController.anotherProtectedHandler);
 
 */
 

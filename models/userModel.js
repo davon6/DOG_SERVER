@@ -32,8 +32,7 @@ const createUser = async (username, email, password) => {
         console.error("Error executing query:", error.message);  // Log the error
         throw error;  // Re-throw the error for further handling
     }
-    
-   // return result.recordset[0]; // Return the created user ID
+
 };
 
 // Find User by Username

@@ -58,33 +58,4 @@ app.listen(3000, '0.0.0.0', () => {
 });
 
 
-/*
-
-// Sign Up Route
-app.post('/signup', async (req, res) => {
-  const { username, password } = req.body;
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-  const newUser = new User({ username, password: hashedPassword });
-
-  await newUser.save();
-  res.status(201).json({ message: 'User created successfully' });
-});
-
-// Sign In Route
-app.post('/signin', async (req, res) => {
-  const { username, password } = req.body;
-  const user = await User.findOne({ username });
-
-  if (!user) return res.status(400).json({ message: 'Invalid username or password' });
-
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) return res.status(400).json({ message: 'Invalid username or password' });
-
-  // Generate JWT Token
-  const token = jwt.sign({ userId: user._id }, 'YOUR_SECRET_KEY', { expiresIn: '1h' });
-  res.json({ token });
-});
-*/
-
 module.exports = app;
