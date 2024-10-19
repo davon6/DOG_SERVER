@@ -97,11 +97,13 @@ const signin = async (req, res) => {
 
          // Generate Refresh Token (longer expiration)
         const refreshToken = jwt.sign({ userId: user.ID }, privateKey, { algorithm: 'RS256', expiresIn: '7d' });
+        const user_info = await UserModel.findUserInfoByUsername(username);
+
 
 
       //  console.log("token 1"+token+"    token 2   "+refreshToken);
    // Return both tokens
-   res.json({ token, refreshToken });
+   res.json({ token, refreshToken, user_info :user_info });
         //res.json({ token });
     } catch (err) {
         res.status(500).send({ message: 'Error signing in', error: err.message });

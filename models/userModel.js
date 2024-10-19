@@ -57,9 +57,47 @@ const findUserByUsername = async (username) => {
     return result.recordset[0]; // Return the found user
 };
 
-// Other user-related database operations can be added here as needed
+const findUserInfoByUsername = async (username) => {
+    try {
+        console.log("findUserInfoByUsername reached"); // For debugging
+
+        // Access username from request body
+        //const username = req.body.username; // Get the username from the request body
+        
+        // Log the username to check if it's being received correctly
+        console.log("Username from body: " + username); 
+
+        // Check if username is provided
+        if (!username) {
+            return res.status(400).send({ message: "Username is required." }); // Bad Request
+        }
+
+        const pool = await poolPromise;
+
+        // Use a parameterized query to avoid SQL Injection
+        const result = await pool.request()
+            .input('username', username)  // Bind the username parameter
+            .query('SELECT * FROM USER_DOG WHERE USER_NAME = @username');  // Use @username as a placeholder
+            //.query('SELECT * FROM [users] u JOIN user_dog ud ON u.username = ud.user_name WHERE u.username = @username');
+            
+        // Check if any user was found
+        if (result.recordset.length === 0) {
+            return res.status(404).send({ message: "User not found." }); // Not Found
+        }
+
+
+        console.log("found and even fetched "+ JSON.stringify(result.recordset[0]));
+
+
+        return result.recordset[0];
+       // res.json(result.recordset); // Send the result back
+    } catch (err) {
+        res.status(500).send({ message: err.message });
+    }
+};
 
 module.exports = {
     createUser,
     findUserByUsername,
+    findUserInfoByUsername,
 };
