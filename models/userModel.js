@@ -1,103 +1,93 @@
-const { poolPromise } = require('../config/db');
+const { sql, poolPromise } = require('../config/db');
+
+// Initialize pool once for the entire module
+let pool;
+const initPool = async () => {
+    if (!pool) {
+        pool = await poolPromise;
+        console.log("Database pool initialized");
+    }
+};
 
 // Create User
-const createUser = async (username, email, password) => {
-
-    console.log("tempting connection to db");
-
-
-    //console.log("here we go"+ input('username', username)+input('email', email)+input('password', password));
-
-
-    const pool = await poolPromise;
-    console.log("Connected to DB");
-
-    console.log(`Username: ${username}, Email: ${email}, Password: ${password}`); 
-
-
-    console.log(`Executing query: INSERT INTO USERS (USERNAME, EMAIL, PASSWORD) OUTPUT INSERTED.ID VALUES ('${username}', '${email}', '${password}')`);
-
+const createUser = async (username, email, password, dogName, dogColor, dogWeight, dogRace, dogSize, dogAge, dogPersonality, dogHobbies) => {
+    await initPool();  // Ensure pool is initialized
 
     try {
-        const result = await pool.request()
-            .input('username', username)
-            .input('email', email)
-            .input('password', password)
-            .query('INSERT INTO USERS (USERNAME, EMAIL, PASSWORD) OUTPUT INSERTED.ID VALUES (@username, @email, @password)');
+        const transaction = new sql.Transaction(pool);
+        await transaction.begin();
+        const request = new sql.Request(transaction);
+
+        // Insert the user
+        const userResult = await request
+            .input('username', sql.VarChar, username)
+            .input('email', sql.VarChar, email)
+            .input('password', sql.VarChar, password)
+            .query('INSERT INTO USERS (USERNAME, EMAIL, PASSWORD) OUTPUT INSERTED.ID AS userId VALUES (@username, @email, @password)');
         
-        console.log("User inserted successfully:", result.recordset[0]);
+        const userId = userResult.recordset[0].userId;
+        console.log("User inserted with ID:", userId);
 
-        return result.recordset[0]; // Return the created user ID
+        // Insert the dog
+        await request
+            .input('dogName', sql.VarChar, dogName)
+            .input('userId', sql.Int, userId)
+            .input('dogColor', sql.VarChar, dogColor)
+            .input('dogWeight', sql.VarChar, dogWeight)
+            .input('dogRace', sql.VarChar, dogRace)
+            .input('lastLocLat', sql.Decimal, null)
+            .input('lastLocLong', sql.Decimal, null)
+            .input('dogHobbies', sql.VarChar, dogHobbies)
+            .input('dogPersonality', sql.VarChar, dogPersonality)
+            .input('dogAge', sql.VarChar, dogAge)
+            .input('dogSize', sql.VarChar, dogSize)
+            .query(`INSERT INTO USER_DOG (DOG_NAME, USER_ID, D_COLOR, D_WEIGHT, D_RACE, LAST_LOCAT_LAT, LAST_LOCAT_LONG, D_HOBBIES, D_AGE, D_SIZE, D_PERSONALITY) 
+                    VALUES (@dogName, @userId, @dogColor, @dogWeight, @dogRace, @lastLocLat, @lastLocLong, @dogHobbies, @dogAge, @dogSize, @dogPersonality )`);
+
+        await transaction.commit();
+        console.log("User and dog inserted successfully");
+
+        return userResult.recordset;
     } catch (error) {
-        console.error("Error executing query:", error.message);  // Log the error
-        throw error;  // Re-throw the error for further handling
+        console.error("Error executing transaction:", error.message);
+        if (transaction) await transaction.rollback();
+        throw error;
     }
+};
 
+// Find Dog by User ID
+const findDogByUserId = async (userId) => {
+    await initPool();
+    console.log("Searching for dog with userId:", userId);
+
+    const dogResult = await pool.request()
+        .input('userId', sql.Int, userId)
+        .query('SELECT * FROM USER_DOG WHERE USER_ID = @userId');
+
+    console.log("Dog found:", JSON.stringify(dogResult.recordset[0]));
+    return dogResult.recordset[0];
 };
 
 // Find User by Username
-
 const findUserByUsername = async (username) => {
-    console.log("Finding user by username:", username); // Debugging log
+    await initPool();
+    console.log("Finding user by username:", username);
 
-    const pool = await poolPromise;
-
-    // Use a parameterized query to avoid SQL Injection
     const result = await pool.request()
-        .input('username', username)
-        .query('SELECT * FROM USERS WHERE USERNAME = @username'); // Adjust the table name as needed
+        .input('username', sql.VarChar, username)
+        .query('SELECT * FROM USERS WHERE USERNAME = @username');
 
-    // Check if any user was found
     if (result.recordset.length === 0) {
         console.log("User not found");
-        return null; // Return null if no user is found
+        return null;
     }
 
     console.log("User found:", result.recordset[0]);
-    return result.recordset[0]; // Return the found user
-};
-
-const findUserInfoByUsername = async (username) => {
-    try {
-        console.log("findUserInfoByUsername reached"); // For debugging
-
-        // Access username from request body
-        //const username = req.body.username; // Get the username from the request body
-        
-        // Log the username to check if it's being received correctly
-        console.log("Username from body: " + username); 
-
-        // Check if username is provided
-        if (!username) {
-            return res.status(400).send({ message: "Username is required." }); // Bad Request
-        }
-
-        const pool = await poolPromise;
-
-        // Use a parameterized query to avoid SQL Injection
-        const result = await pool.request()
-            .input('username', username)  // Bind the username parameter
-            .query('SELECT * FROM USER_DOG WHERE USER_NAME = @username');  // Use @username as a placeholder
-            //.query('SELECT * FROM [users] u JOIN user_dog ud ON u.username = ud.user_name WHERE u.username = @username');
-            
-        // Check if any user was found
-        if (result.recordset.length === 0) {
-            return res.status(404).send({ message: "User not found." }); // Not Found
-        }
-
-
-        console.log("found and even fetched "+ JSON.stringify(result.recordset[0]));
-
-
-        return result.recordset[0];
-       // res.json(result.recordset); // Send the result back
-    } catch (err) {
-        res.status(500).send({ message: err.message });
-    }
+    return result.recordset[0];
 };
 
 module.exports = {
     createUser,
     findUserByUsername,
-    findUserInfoByUsername,
+    findDogByUserId
 };

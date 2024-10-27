@@ -56,16 +56,28 @@ const findUserByUsername = async (req, res) => {
 
 // Sign Up Handler
 const signup = async (req, res) => {
-    const { username, email, password } = req.body;
+    const { username, email, password, dogName, dogColor, dogWeight, dogRace ,dogSize, dogAge, dogPersonality, dogHobbies } = req.body;
 
     try {
         // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
         
         // Create new user in the database
-        const newUser = await UserModel.createUser(username, email, hashedPassword);
-        
-        res.status(201).json({ message: 'User created successfully', userId: newUser.ID });
+        const newUser = await UserModel.createUser(username, email, hashedPassword,  dogName, dogColor, dogWeight, dogRace ,dogSize, dogAge, dogPersonality, dogHobbies);
+ 
+        console.log( 'User created successfully'+ newUser[0].userId  );
+
+        const token = jwt.sign({userId: newUser[0].userId }, privateKey, { algorithm: 'RS256', expiresIn: '10s' });//1h
+
+        console.log("here s your token")
+
+         // Generate Refresh Token (longer expiration)
+        const refreshToken = jwt.sign({ userId: newUser[0].userId }, privateKey, { algorithm: 'RS256', expiresIn: '7d' });
+       
+        res.status(201).json({token, refreshToken});
+
+
+//res.status(status).json(obj)
     } catch (err) {
         res.status(500).json({ message: 'Error creating user', error: err.message });
     }
@@ -77,33 +89,24 @@ const signup = async (req, res) => {
 const signin = async (req, res) => {
     const { username, password } = req.body;
 
-
     try {
         const user = await UserModel.findUserByUsername(username);
 
-       
-
         if (!user) return res.status(400).json({ message: 'Invalid username or password' });
-
-        console.log("seems that user found"+ user,"now matching password");
 
         const isMatch = await bcrypt.compare(password, user.PASSWORD);
         if (!isMatch) return res.status(400).json({ message: 'Invalid username or password' });
-        console.log("they match !!!!");
         // Generate JWT Token with RS256
         const token = jwt.sign({ userId: user.ID }, privateKey, { algorithm: 'RS256', expiresIn: '10s' });//1h
 
-        console.log("did we get a token", token)
-
          // Generate Refresh Token (longer expiration)
         const refreshToken = jwt.sign({ userId: user.ID }, privateKey, { algorithm: 'RS256', expiresIn: '7d' });
-        const user_info = await UserModel.findUserInfoByUsername(username);
+        const dogInfo = await UserModel.findDogByUserId(user.id);
 
+        delete dogInfo["USER_ID"];
 
-
-      //  console.log("token 1"+token+"    token 2   "+refreshToken);
    // Return both tokens
-   res.json({ token, refreshToken, user_info :user_info });
+   res.json({ token, refreshToken, dogInfo });
         //res.json({ token });
     } catch (err) {
         res.status(500).send({ message: 'Error signing in', error: err.message });
