@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 
-console.log("slooow  "+path.join(__dirname, '../config/public.pem'));
+//console.log("slooow  "+path.join(__dirname, '../config/public.pem'));
 
 const publicKey = fs.readFileSync(path.join(__dirname, '../config/public.pem'), 'utf8');
 

@@ -27,7 +27,7 @@ const findUserByUsername = async (req, res) => {
         const username = req.body.username; // Get the username from the request body
         
         // Log the username to check if it's being received correctly
-        console.log("Username from body: " + username); 
+       // console.log("Username from body: " + username); 
 
         // Check if username is provided
         if (!username) {
@@ -65,11 +65,11 @@ const signup = async (req, res) => {
         // Create new user in the database
         const newUser = await UserModel.createUser(username, email, hashedPassword,  dogName, dogColor, dogWeight, dogRace ,dogSize, dogAge, dogPersonality, dogHobbies);
  
-        console.log( 'User created successfully'+ newUser[0].userId  );
+      //  console.log( 'User created successfully'+ newUser[0].userId  );
 
         const token = jwt.sign({userId: newUser[0].userId }, privateKey, { algorithm: 'RS256', expiresIn: '10s' });//1h
 
-        console.log("here s your token")
+      //  console.log("here s your token")
 
          // Generate Refresh Token (longer expiration)
         const refreshToken = jwt.sign({ userId: newUser[0].userId }, privateKey, { algorithm: 'RS256', expiresIn: '7d' });

@@ -46,7 +46,7 @@ router.post('/token/refresh', (req, res) => {
     // Extract refreshToken directly from req.body
     const { refreshToken } = req.body;
 
-    console.log("the refresh token req.body.refreshToken: ", refreshToken);
+    //console.log("the refresh token req.body.refreshToken: ", refreshToken);
 
     if (!refreshToken) {
         console.log("token refresh NOT detected properly");

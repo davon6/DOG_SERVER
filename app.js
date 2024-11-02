@@ -7,6 +7,7 @@ dotenv.config();
 
 var indexRouter = require('./routes/index');
 var userRoutes = require('./routes/userRoutes');
+var conversationsRoutes =  require('./routes/conversations');
 
 var app = express();
 
@@ -33,6 +34,9 @@ app.use('/user', userRoutes);  // Use the /user route for anything in userRoutes
 
 app.use('/api/users', userRoutes);
 console.log('User routes registered');
+
+
+app.use('/api/conversations', conversationsRoutes);
 
 app.use((req, res, next) => {
   console.log(`Request method: ${req.method}, URL: ${req.url}`);

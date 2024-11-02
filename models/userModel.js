@@ -64,7 +64,7 @@ const findDogByUserId = async (userId) => {
         .input('userId', sql.Int, userId)
         .query('SELECT * FROM USER_DOG WHERE USER_ID = @userId');
 
-    console.log("Dog found:", JSON.stringify(dogResult.recordset[0]));
+ //   console.log("Dog found:", JSON.stringify(dogResult.recordset[0]));
     return dogResult.recordset[0];
 };
 
@@ -82,12 +82,47 @@ const findUserByUsername = async (username) => {
         return null;
     }
 
-    console.log("User found:", result.recordset[0]);
+   // console.log("User found:", result.recordset[0]);
     return result.recordset[0];
 };
+
+
+const findUsersForConversation = async (senderUsername, receiverUsername) => {
+    try {
+        await initPool();
+        console.log("Finding users by username:", senderUsername, receiverUsername);
+
+        // Safely parameterized query
+        const result = await pool.request()
+            .input('senderUsername', sql.VarChar, senderUsername)
+            .input('receiverUsername', sql.VarChar, receiverUsername)
+            .query(`
+                SELECT id, Username FROM Users
+                WHERE Username IN (@senderUsername, @receiverUsername)
+            `);
+
+        const users = result.recordset;
+
+
+       // console.log("so user found "+ JSON.stringify(users))
+
+        // Check if both users were found
+        if (users.length < 2) {
+            throw new Error('One or both users not found');
+        }
+
+        return users;
+
+    } catch (error) {
+        console.error("Error in findUsersForConversation:", error);
+        throw error; // Let the calling function handle the error response
+    }
+};
+
 
 module.exports = {
     createUser,
     findUserByUsername,
-    findDogByUserId
+    findDogByUserId,
+    findUsersForConversation
 };
