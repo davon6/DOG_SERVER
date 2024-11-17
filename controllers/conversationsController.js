@@ -46,9 +46,9 @@ console.log("hereeee"+ JSON.stringify(sender), JSON.stringify(receiver));
             if (!user) return res.status(400).json({ error: 'Sender not found' });
 
             // Add the message to the conversation
-            await Conversation.addMessage(conversationId, user.id, text);
+            const messageID = await Conversation.addMessage(conversationId, user.id, text);
 
-            res.json({ success: true });
+            res.json({ messageID, success: true });
         } catch (error) {
             console.error("Error in sendMessage:", error);
             res.status(500).json({ error: 'Internal server error' });

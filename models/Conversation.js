@@ -105,10 +105,23 @@ static async findOrCreateConversation(senderId, receiverId) {
   static async addMessage(conversationId, userId, text) {
     try {
       await initPool();
-      
+   /*   
       await pool.request().query(`
         INSERT INTO Messages (ConversationID, UserID, Text, Timestamp)
         VALUES (${conversationId}, ${userId}, '${text}', GETDATE())`);
+*/
+        const result = await pool.request().query(`
+        DECLARE @InsertedMessages TABLE (MessageID INT);
+
+        INSERT INTO Messages (ConversationID, UserID, Text, Timestamp)
+        OUTPUT INSERTED.MessageID INTO @InsertedMessages
+        VALUES (${conversationId}, ${userId}, '${text}', GETDATE());
+        
+        SELECT MessageID FROM @InsertedMessages;`);
+        
+        const messageId = result.recordset[0].MessageID; // Extracting MessageID from the result set
+    return messageId;
+
     } catch (error) {
       console.error("Error in addMessage:", error);
       throw error;
@@ -118,30 +131,43 @@ static async findOrCreateConversation(senderId, receiverId) {
 
 
 static async getConversationsForUser(userId) {
-    try {
-      await initPool();
+  try {
+    await initPool();
 
-      const conversations = await pool.request()
-        .input('UserID', sql.Int, userId)
-        .query(`
-          SELECT ConversationID, UserID1, UserID2, CreatedAt
-          FROM Conversations
-          WHERE UserID1 = @UserID OR UserID2 = @UserID
-          ORDER BY CreatedAt DESC
-        `);
+    const conversations = await pool.request()
+      .input('UserID', sql.Int, userId)
+      .query(`
+        SELECT 
+          c.ConversationID,
+          c.UserID1,
+          c.UserID2,
+          u1.username AS username1,
+          u2.username AS username2
+        FROM Conversations c
+        LEFT JOIN Users u1 ON c.UserID1 = u1.id
+        LEFT JOIN Users u2 ON c.UserID2 = u2.id
+        WHERE c.UserID1 = @UserID OR c.UserID2 = @UserID
+        ORDER BY c.CreatedAt DESC
+      `);
 
-      // Transform conversations to include participants and initial state
-      return conversations.recordset.map(conv => ({
+    // Transform conversations to include participants and initial state
+    return conversations.recordset.map(conv => {
+      // Determine the other user based on the logged-in user ID
+      const otherUser = conv.UserID1 === userId ? conv.username2 : conv.username1;
+
+      return {
         id: conv.ConversationID.toString(),
         participants: [conv.UserID1.toString(), conv.UserID2.toString()],
         messages: [],
         hasMore: true,
-      }));
-    } catch (error) {
-      console.error("Error in getConversationsForUser:", error);
-      throw error;
-    }
+        otherUser: otherUser,  // Include the username of the other participant
+      };
+    });
+  } catch (error) {
+    console.error("Error in getConversationsForUser:", error);
+    throw error;
   }
+}
 
   static async getMessages(conversationId, offset, limit) {
     try {
@@ -224,7 +250,7 @@ static async getMessages(conversationId, offset, limit) {
       throw error;
     }
   }*/
-
+/*
     static async getMessages(conversationId, offset, limit) {
         try {
           await initPool();
@@ -253,8 +279,54 @@ static async getMessages(conversationId, offset, limit) {
           console.error("Error in getMessages:", error);
           throw error;
         }
-      }
-  
+      }*/
+        static async getMessages(conversationId, offset, limit) {
+          try {
+            await initPool();
+        
+            const messages = await pool.request()
+              .input('ConversationID', sql.Int, conversationId)
+              .input('Offset', sql.Int, offset)
+              .input('Limit', sql.Int, limit)
+              .query(`
+                WITH MessagesWithCount AS (
+                  SELECT 
+                    m.MessageID AS id, 
+                    m.ConversationID, 
+                    m.UserID, 
+                    m.Text, 
+                    m.Timestamp, 
+                    u.Username,
+                    COUNT(*) OVER () AS totalMessages
+                  FROM Messages m
+                  JOIN Users u ON m.UserID = u.id
+                  WHERE m.ConversationID = @ConversationID
+                  ORDER BY m.Timestamp DESC
+                  OFFSET @Offset ROWS FETCH NEXT @Limit ROWS ONLY
+                )
+                SELECT * FROM MessagesWithCount;
+              `);
+        
+            const totalMessages = messages.recordset[0]?.totalMessages || 0;
+            const hasMore = offset + messages.recordset.length < totalMessages;
+        
+            return {
+              messages: messages.recordset.map(msg => ({
+                id: msg.id.toString(),
+                conversationId: msg.ConversationID.toString(),
+                senderUsername: msg.Username,
+                text: msg.Text,
+                timestamp: msg.Timestamp.toISOString(),
+              })),
+              hasMore,
+              totalMessages,
+            };
+          } catch (error) {
+            console.error("Error in getMessages:", error);
+            throw error;
+          }
+        }
+        
 }
 
 module.exports = Conversation;
