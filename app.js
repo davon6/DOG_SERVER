@@ -8,6 +8,7 @@ dotenv.config();
 var indexRouter = require('./routes/index');
 var userRoutes = require('./routes/userRoutes');
 var conversationsRoutes =  require('./routes/conversations');
+const friendsRoutes = require('./routes/friends');
 
 var app = express();
 
@@ -37,6 +38,9 @@ console.log('User routes registered');
 
 
 app.use('/api/conversations', conversationsRoutes);
+
+// Routes
+app.use('/api/friends', friendsRoutes);
 
 app.use((req, res, next) => {
   console.log(`Request method: ${req.method}, URL: ${req.url}`);
