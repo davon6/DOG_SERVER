@@ -40,11 +40,16 @@ const getFriends = async (userId) => {
 const addFriendRequest = async (userId, friendId) => {
   try {
     const pool = await initPool();
+
+console.log("starting  "+userId+ friendId);
+
     const query = `
       INSERT INTO Friends (id, friend_id, request_accepted)
       VALUES (@userId, @friendId, 0);
     `;
     await pool.request().input('userId', sql.Int, userId).input('friendId', sql.Int, friendId).query(query);
+
+
     return { message: 'Friend request sent' };
   } catch (error) {
     console.error("Error sending friend request:", error);
@@ -86,10 +91,42 @@ const removeFriend = async (userId, friendId) => {
   }
 };
 
+// Check the relationship status between two users
+const getFriendRelationship = async (userId, otherUserId) => {
+  try {
+    const pool = await poolPromise;
+
+    const query = `
+      SELECT
+        CASE
+          WHEN request_accepted = 1 THEN 'friends'
+          WHEN request_accepted = 0 THEN 'pending'
+          ELSE 'none'
+        END AS relationship
+      FROM Friends
+      WHERE (id = @userId AND friend_id = @otherUserId)
+         OR (id = @otherUserId AND friend_id = @userId);
+    `;
+
+    const result = await pool
+      .request()
+      .input('userId', sql.Int, userId)
+      .input('otherUserId', sql.Int, otherUserId)
+      .query(query);
+
+    // If no record exists, return 'none'
+    return result.recordset.length > 0 ? result.recordset[0].relationship : 'none';
+  } catch (error) {
+    console.error('Error fetching friend relationship:', error);
+    throw error;
+  }
+};
+
 module.exports = {
   initPool, // Export if needed elsewhere
   getFriends,
   addFriendRequest,
   acceptFriendRequest,
   removeFriend,
+  getFriendRelationship
 };

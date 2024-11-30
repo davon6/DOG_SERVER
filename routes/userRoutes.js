@@ -71,9 +71,31 @@ router.post('/token/refresh', (req, res) => {
         return res.json({ accessToken });
     });
 });
+/*
+router.post('/dogs', async (req, res) => {
+    try {
+        console.log('Request Body:', req.body);
+       // await userController.getUsersAndDogs(req, res); // Let the controller handle the response
+    } catch (error) {
+        console.error(error);
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Server error' }); // Only send a response if none has been sent
+        }
+    }
+});
+*/
 
 
+/*
+router.get('/dogs', userController.getUsersAndDogs);
+*/
 
+router.post('/dogs', (req, res, next) => {
+
+    console.log(`[${new Date().toISOString()}] Received POST request on /dogs`);
+    console.log('Request Body:', req.body); // Log the request body for debugging
+    userController.getUsersAndDogs(req, res, next); // Call the updated controller
+});
 
 /*
 // Protected route example

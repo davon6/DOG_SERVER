@@ -114,9 +114,29 @@ const signin = async (req, res) => {
 };
 
 
+const getUsersAndDogs = async (username/*req, res*/) => {
+    console.log(`[${new Date().toISOString()}] Entering getUsersAndDogs controller`);
+
+    try {
+
+        const {id} =  await UserModel.findUserByUsername(username);
+
+        // Call the model function and exclude the userId
+        const data = await UserModel.getUsersWithDogsExcludingUser(id);
+
+        return  [ data, id];
+
+        //res.status(200).json(data);
+    } catch (error) {
+        console.error(`[${new Date().toISOString()}] Error fetching users and dogs:`, error);
+        //res.status(500).json({ message: 'Internal Server Error' });
+    }
+};
+
 module.exports = {
     getUsers,
     findUserByUsername,
     signup,
     signin,
+    getUsersAndDogs
 };

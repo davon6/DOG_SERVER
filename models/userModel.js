@@ -55,6 +55,30 @@ const createUser = async (username, email, password, dogName, dogColor, dogWeigh
     }
 };
 
+
+
+const getUsersWithDogsExcludingUser = async (userId) => {
+    try {
+        await initPool();
+        // Use a parameterized query to exclude the userId
+        const result = await pool.request()
+            .input('userId', sql.Int, userId) // Pass userId as a parameter
+            .query(`
+                     SELECT u.id, u.username, d.dog_name
+                     FROM users u
+                     INNER JOIN user_dog d ON u.id = d.USER_ID
+                WHERE u.id != @userId;
+            `);
+
+        console.log('Query result:', result.recordset); // Debugging log
+        return result.recordset;
+    } catch (error) {
+        console.error('Database query failed:', error);
+        throw error;
+    }
+};
+  
+
 // Find Dog by User ID
 const findDogByUserId = async (userId) => {
     await initPool();
@@ -84,6 +108,25 @@ const findUserByUsername = async (username) => {
 
    // console.log("User found:", result.recordset[0]);
     return result.recordset[0];
+};
+
+// Find User by Username
+const findUsersByUsername = async (username, userNameFriend) => {
+    await initPool();
+    console.log("Finding users by username:", username, userNameFriend);
+
+    const result = await pool.request()
+        .input('username', sql.VarChar, username)
+        .input('username2', sql.VarChar, userNameFriend)
+        .query('SELECT id FROM USERS WHERE USERNAME = @username OR  USERNAME = @username2');
+
+    if (result.recordset.length === 0) {
+        console.log("User not found");
+        return null;
+    }
+
+    console.log("User found:", result.recordset);
+    return [result.recordset[0].id,result.recordset[1].id];
 };
 
 
@@ -123,6 +166,8 @@ const findUsersForConversation = async (senderUsername, receiverUsername) => {
 module.exports = {
     createUser,
     findUserByUsername,
+    findUsersByUsername,
     findDogByUserId,
-    findUsersForConversation
+    findUsersForConversation,
+    getUsersWithDogsExcludingUser
 };

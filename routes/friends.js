@@ -5,6 +5,11 @@ const friendsController = require('../controllers/friends');
 // Get all friends for a user
 router.get('/:userId', friendsController.getFriends);
 
+
+router.post('/status', friendsController.getFriendStatuses);
+
+//router.get('/status/:username', friendsController.getFriendStatuses);
+
 // Send a friend request
 router.post('/request', friendsController.sendFriendRequest);
 
