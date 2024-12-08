@@ -110,6 +110,24 @@ const findUserByUsername = async (username) => {
     return result.recordset[0];
 };
 
+
+const findUserIdByUsername = async (username) => {
+    await initPool();
+    console.log("Finding user by username:", username);
+
+    const result = await pool.request()
+        .input('username', sql.VarChar, username)
+        .query('SELECT id FROM USERS WHERE USERNAME = @username');
+
+    if (result.recordset.length === 0) {
+        console.log("User not found");
+        return null;
+    }
+
+   // console.log("User found:", result.recordset[0]);
+    return result.recordset[0];
+};
+
 // Find User by Username
 const findUsersByUsername = async (username, userNameFriend) => {
     await initPool();
@@ -169,5 +187,6 @@ module.exports = {
     findUsersByUsername,
     findDogByUserId,
     findUsersForConversation,
-    getUsersWithDogsExcludingUser
+    getUsersWithDogsExcludingUser,
+    findUserIdByUsername
 };

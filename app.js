@@ -1,5 +1,6 @@
 var express = require('express');
 var path = require('path');
+//const fs = require('fs');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var dotenv = require('dotenv');
@@ -9,12 +10,20 @@ var indexRouter = require('./routes/index');
 var userRoutes = require('./routes/userRoutes');
 var conversationsRoutes =  require('./routes/conversations');
 const friendsRoutes = require('./routes/friends');
+const notificationRoutes = require('./routes/notification');
 
 var app = express();
 
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('./models/userModel'); // Example user model
+
+// const notificationTemplates = JSON.parse(
+//   fs.readFileSync(path.resolve(__dirname+'\\config\\', 'notifications.json'), 'utf-8')
+// );
+
+// Example: Access a template
+//console.log(notificationTemplates["friend_request"]);
 
 // Middleware setup
 app.use(logger('dev'));
@@ -26,6 +35,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes setup
 app.use('/', indexRouter);
+
 
 
 app.use('/users', userRoutes);  // Make sure this is included in your routes setup
@@ -41,6 +51,9 @@ app.use('/api/conversations', conversationsRoutes);
 
 // Routes
 app.use('/api/friends', friendsRoutes);
+app.use('/api/notifications', notificationRoutes);
+console.log('notifications routes registered');
+
 
 app.use((req, res, next) => {
   console.log(`Request method: ${req.method}, URL: ${req.url}`);
@@ -48,6 +61,8 @@ app.use((req, res, next) => {
 });
 
 
+
+/*
 // Catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
@@ -61,6 +76,7 @@ app.use(function(err, req, res, next) {
   //res.render('error');
   res.status(500).json({ error: 'Something went wrong' });
 });
+*/
 
 app.listen(3000, '0.0.0.0', () => {
   console.log('Server is running on port 3000 and accessible from any network interface');

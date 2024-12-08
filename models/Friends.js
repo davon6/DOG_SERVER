@@ -45,7 +45,7 @@ console.log("starting  "+userId+ friendId);
 
     const query = `
       INSERT INTO Friends (id, friend_id, request_accepted)
-      VALUES (@userId, @friendId, 0);
+      VALUES (@friendId, @userId, 0);
     `;
     await pool.request().input('userId', sql.Int, userId).input('friendId', sql.Int, friendId).query(query);
 
@@ -91,7 +91,7 @@ const removeFriend = async (userId, friendId) => {
   }
 };
 
-// Check the relationship status between two users
+// Check the relationship status and direction between two users
 const getFriendRelationship = async (userId, otherUserId) => {
   try {
     const pool = await poolPromise;
@@ -100,7 +100,8 @@ const getFriendRelationship = async (userId, otherUserId) => {
       SELECT
         CASE
           WHEN request_accepted = 1 THEN 'friends'
-          WHEN request_accepted = 0 THEN 'pending'
+          WHEN request_accepted = 0 AND id = @userId THEN 'sent'
+          WHEN request_accepted = 0 AND friend_id = @userId THEN 'received'
           ELSE 'none'
         END AS relationship
       FROM Friends
@@ -114,13 +115,14 @@ const getFriendRelationship = async (userId, otherUserId) => {
       .input('otherUserId', sql.Int, otherUserId)
       .query(query);
 
-    // If no record exists, return 'none'
     return result.recordset.length > 0 ? result.recordset[0].relationship : 'none';
   } catch (error) {
     console.error('Error fetching friend relationship:', error);
     throw error;
   }
 };
+
+
 
 module.exports = {
   initPool, // Export if needed elsewhere

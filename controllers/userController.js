@@ -2,6 +2,7 @@ const { poolPromise } = require('../config/db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const UserModel = require('../models/userModel');
+const Notification = require('../models/Notification');
 const fs = require('fs');
 const path = require('path'); // Useful for resolving the path to the private key file
 
@@ -133,10 +134,40 @@ const getUsersAndDogs = async (username/*req, res*/) => {
     }
 };
 
+
+
+async function getUserNotifications(username/*req, res*/) {
+    try {
+
+
+        
+
+        const { id}= await UserModel.findUserIdByUsername(username);
+
+        //const userId = req.user.id; // assuming you have middleware to attach the userId
+        const notifications = await Notification.getUserNotifications(id);
+
+
+
+
+/*
+const notificationTemplates = JSON.parse(
+    fs.readFileSync(path.resolve(__dirname+'\\config\\', 'notifications.json'), 'utf-8')
+  );*/
+
+        // res.status(200).json(notifications);
+        console.log("my god we went a long way"+ JSON.stringify(notifications));
+        return notifications
+    } catch (error) {
+        res.status(500).json({ error: 'Error fetching notifications' });
+    }
+}
+
 module.exports = {
     getUsers,
     findUserByUsername,
     signup,
     signin,
-    getUsersAndDogs
+    getUsersAndDogs,
+    getUserNotifications
 };

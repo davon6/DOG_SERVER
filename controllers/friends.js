@@ -53,33 +53,22 @@ const removeFriend = async (req, res) => {
 };
 
 // Controller to get friend statuses for all users relative to a specific user
+// Controller to get friend statuses for all users relative to a specific user
 const getFriendStatuses = async (req, res) => {
-  //const { username } = req.params;
-
-
-  //console.log("continuons   "+ JSON.stringify( req.body));
-
   const { username } = req.body;
 
   try {
     // Fetch all users and their dogs
-    const [allUsers, userId ] = await userController.getUsersAndDogs(username);
+    const [allUsers, userId] = await userController.getUsersAndDogs(username);
 
     // Map each user to their friend relationship status
     const friendStatuses = await Promise.all(
       allUsers.map(async (user) => {
-       /* if (user.id === parseInt(userId)) {
-          return { ...user, relationship: 'self' }; // Exclude self in results
-        }
-        */
-
         const relationship = await friendsModel.getFriendRelationship(userId, user.id);
 
-        const { id, ...userWithoutId } = user;  // Destructure and omit the 'id' field
-
-    return { ...userWithoutId, relationship };
-
- 
+        const { id, ...userWithoutId } = user; // Destructure and omit the 'id' field
+        console.log("-->"+ JSON.stringify({ ...userWithoutId, relationship }));
+        return { ...userWithoutId, relationship };
       })
     );
 
@@ -89,6 +78,7 @@ const getFriendStatuses = async (req, res) => {
     res.status(500).json({ error: 'Error fetching friend statuses' });
   }
 };
+
 
 module.exports = {
   getFriends,
