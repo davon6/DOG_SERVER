@@ -45,7 +45,7 @@ console.log("starting  "+userId+ friendId);
 
     const query = `
       INSERT INTO Friends (id, friend_id, request_accepted)
-      VALUES (@friendId, @userId, 0);
+      VALUES (@userId, @friendId, 0);
     `;
     await pool.request().input('userId', sql.Int, userId).input('friendId', sql.Int, friendId).query(query);
 
