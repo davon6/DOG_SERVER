@@ -64,7 +64,7 @@ const acceptFriendRequest = async (userId, friendId) => {
     const query = `
       UPDATE Friends
       SET request_accepted = 1
-      WHERE id = @friendId AND friend_id = @userId;
+      WHERE id = @userId AND friend_id = @friendId;
     `;
     await pool.request().input('userId', sql.Int, userId).input('friendId', sql.Int, friendId).query(query);
     return { message: 'Friend request accepted' };
@@ -122,6 +122,21 @@ const getFriendRelationship = async (userId, otherUserId) => {
   }
 };
 
+const deleteFriendRequest = async (userId, friendId) => {
+  try {
+    const pool = await initPool();
+    const query = `
+      DELETE FROM Friends
+      WHERE id = @friendId AND friend_id = @userId;
+    `;
+    await pool.request().input('userId', sql.Int, userId).input('friendId', sql.Int, friendId).query(query);
+    return { message: 'Friend request deleted' };
+  } catch (error) {
+    console.error('Error deleting friend request:', error);
+    throw error;
+  }
+};
+
 
 
 module.exports = {
@@ -129,6 +144,7 @@ module.exports = {
   getFriends,
   addFriendRequest,
   acceptFriendRequest,
+  deleteFriendRequest,
   removeFriend,
   getFriendRelationship
 };

@@ -91,6 +91,39 @@ class Notification {
     }
   }
 
+    static  async updateNotificationResponse (notificationId, response)  {
+    try {
+      const pool = await initPool();
+      let query;
+  
+      // Depending on the response, update the notification type and text
+      if (response === 'accept') {
+        query = `
+          UPDATE Notifications
+          SET type = 'friend_accepted', isRead = 1
+          WHERE id = @notificationId;
+        `;
+      } else if (response === 'decline') {
+        query = `
+          UPDATE Notifications
+          SET type = 'friend_declined',  isRead = 1
+          WHERE id = @notificationId;
+        `;
+      }
+  
+      // Execute the query
+      await pool.request()
+        .input('notificationId', sql.Int, notificationId)
+        .query(query);
+  
+      return { message: 'Notification updated successfully' };
+    } catch (error) {
+      console.error("Error updating notification:", error);
+      throw error;
+    }
+  };
+  
+
   // This method deletes a specific notification
   static async deleteNotification(notificationId) {
     const pool = await initPool(); // Ensure the pool is initialized

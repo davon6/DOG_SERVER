@@ -1,6 +1,7 @@
 const friendsModel = require('../models/Friends');
 const userController = require('../controllers/userController');
 const userModel = require('../models/userModel');
+const notificationsModel = require('../models/Notification');
 
 // Get all friends for a specific user
 const getFriends = async (req, res) => {
@@ -30,16 +31,49 @@ const sendFriendRequest = async (req, res) => {
   }
 };
 
-// Accept a friend request
 const acceptFriendRequest = async (req, res) => {
-  const { userId, friendId } = req.body;
+  const { username, relatedUsername, notificationId } = req.body; // Include notificationId in the request
+
+
+console.log("processing acceptance friend request",  username, relatedUsername, notificationId);
+
+
+  const ids =  await  userModel.findUsersByUsername( username, relatedUsername);
+
   try {
-    const result = await friendsModel.acceptFriendRequest(userId, friendId);
-    res.status(200).json(result);
+    // Accept the friend request
+    const result = await friendsModel.acceptFriendRequest(ids[0], ids[1]);
+
+    // Mark the notification as read
+    await notificationsModel.updateNotificationResponse(notificationId, 'accept');
+
+    res.status(200).json({ message: 'Friend request accepted and notification marked as read', result });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+const deleteFriendRequest = async (req, res) => {
+  const { username, relatedUsername, notificationId } = req.body; // Include notificationId in the request
+  try {
+
+    console.log("back to bqsics "+ JSON.stringify(req.body));
+
+    const ids =  await  userModel.findUsersByUsername( username, relatedUsername);
+    // Delete the friend request
+    const result = await friendsModel.deleteFriendRequest(ids[1], ids[0]);
+
+    // Mark the notification as read
+    await notificationsModel.updateNotificationResponse(notificationId, 'decline');
+
+    res.status(200).json({ message: 'Friend request declined and notification marked as read', result });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 
 // Remove a friend
 const removeFriend = async (req, res) => {
@@ -84,6 +118,7 @@ module.exports = {
   getFriends,
   sendFriendRequest,
   acceptFriendRequest,
+  deleteFriendRequest,
   removeFriend,
   getFriendStatuses
 };

@@ -14,7 +14,9 @@ router.post('/status', friendsController.getFriendStatuses);
 router.post('/request', friendsController.sendFriendRequest);
 
 // Accept a friend request
-router.post('/accept', friendsController.acceptFriendRequest);
+router.put('/accept', friendsController.acceptFriendRequest);
+
+router.post('/delete', friendsController.deleteFriendRequest);
 
 // Remove a friend
 router.delete('/remove', friendsController.removeFriend);
