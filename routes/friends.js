@@ -3,7 +3,7 @@ const router = express.Router();
 const friendsController = require('../controllers/friends');
 
 // Get all friends for a user
-router.get('/:userId', friendsController.getFriends);
+router.post('/get', friendsController.getFriends);
 
 
 router.post('/status', friendsController.getFriendStatuses);

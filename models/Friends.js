@@ -21,10 +21,10 @@ const getFriends = async (userId) => {
   try {
     const pool = await initPool();
     const query = `
-      SELECT u.id, u.username, u.email
+      SELECT  u.username
       FROM Users u
-      JOIN Friends f ON (f.user_id = u.id OR f.friend_id = u.id)
-      WHERE (f.user_id = @userId OR f.friend_id = @userId)
+      JOIN Friends f ON (f.id = u.id OR f.friend_id = u.id)
+      WHERE (f.id = @userId OR f.friend_id = @userId)
       AND f.request_accepted = 1
       AND u.id != @userId;
     `;

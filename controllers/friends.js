@@ -5,9 +5,19 @@ const notificationsModel = require('../models/Notification');
 
 // Get all friends for a specific user
 const getFriends = async (req, res) => {
-  const { userId } = req.params;
+  const { username } = req.body;
+
+  const { id } =  await userModel.findUserByUsername(username);
+
+
+console.log("soooo what now ?"+JSON.stringify(id));
+
   try {
-    const friends = await friendsModel.getFriends(userId);
+    const friends = await friendsModel.getFriends(id);
+
+
+    console.log("soooo what now friends ?"+JSON.stringify(friends));
+
     res.status(200).json(friends);
   } catch (error) {
     res.status(500).json({ error: error.message });
