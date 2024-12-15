@@ -23,6 +23,18 @@ router.post('/find', verifyToken, (req, res, next) => {
 });
 
 
+/*
+
+good comment to keep !
+
+router.post('/update', verifyToken, (req, res, next) => {
+    console.log('Received POST request on /user/update'); // Debugging log
+    userController.updateUser(req, res, next);
+});
+*/
+
+router.post('/update',verifyToken,  userController.updateUser);
+
 
 // Sign Up Route
 //router.post('/signup', userController.signup);

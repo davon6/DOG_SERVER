@@ -79,17 +79,33 @@ const getUsersWithDogsExcludingUser = async (userId) => {
 };
   
 
-// Find Dog by User ID
 const findDogByUserId = async (userId) => {
     await initPool();
     console.log("Searching for dog with userId:", userId);
 
+    const query = `
+        SELECT 
+            DOG_NAME AS dogName, 
+            D_COLOR AS dogColor, 
+            D_WEIGHT AS dogWeight, 
+            D_RACE AS dogRace, 
+            USER_ICON AS userIcon, 
+            LAST_LOCAT_LAT AS lastLocationLat, 
+            LAST_LOCAT_LONG AS lastLocationLong, 
+            D_SIZE AS dogSize, 
+            D_AGE AS dogAge, 
+            D_PERSONALITY AS dogPersonality, 
+            D_HOBBIES AS dogHobbies
+        FROM USER_DOG
+        WHERE USER_ID = @userId
+    `;
+
     const dogResult = await pool.request()
         .input('userId', sql.Int, userId)
-        .query('SELECT * FROM USER_DOG WHERE USER_ID = @userId');
+        .query(query);
 
- //   console.log("Dog found:", JSON.stringify(dogResult.recordset[0]));
-    return dogResult.recordset[0];
+    console.log("Dog found:", JSON.stringify(dogResult.recordset[0])); // Debugging output
+    return dogResult.recordset[0]; // Return the first record
 };
 
 // Find User by Username
@@ -180,6 +196,122 @@ const findUsersForConversation = async (senderUsername, receiverUsername) => {
     }
 };
 
+/*
+const updateUser = async (userId, updatedFields) => {
+    await initPool();
+    console.log("Finding setClauses by setClauses:", userId);
+
+
+
+
+
+
+  // Build the request with parameters
+  const request = pool.request();
+  request.input('userId', sql.Int, userId);
+
+  const fieldMapping = {
+    dogName: 'DOG_NAME',
+    dogColor: 'D_COLOR',
+    dogWeight: 'D_WEIGHT',
+    dogRace: 'D_RACE',
+    userIcon: 'USER_ICON',
+    lastLocationLat: 'LAST_LOCAT_LAT',
+    lastLocationLong: 'LAST_LOCAT_LONG',
+    dogSize: 'D_SIZE',
+    dogAge: 'D_AGE',
+    dogPersonality: 'D_PERSONALITY',
+    dogHobbies: 'D_HOBBIES',
+};
+
+// Filter fields to include only valid ones that match the mapping
+const validFields = Object.keys(updatedFields)
+    .filter((key) => fieldMapping[key] !== undefined);
+
+if (validFields.length === 0) {
+    throw new Error('No valid fields to update.');
+}
+
+// Dynamically build the SQL `SET` clause
+const setClauses = validFields.map(
+    (key, index) => `${fieldMapping[key]} = @value${index}`
+).join(', ');
+
+
+  validFields.forEach((key, index) => {
+  request.input(`value${index}`, sql.NVarChar, updatedFields[key]); // Assuming all fields are strings
+});
+
+
+  const result = await pool.request()
+  .input('userId', sql.Int, userId)
+  .query(`UPDATE USER_DOG  SET ${setClauses} WHERE USER_ID = @userId`);
+
+
+    if (result.recordset.length === 0) {
+        console.log("User not found");
+        return null;
+    }
+
+   // console.log("User found:", result.recordset[0]);
+    return result.recordset[0];
+};
+*/
+
+
+
+const updateUser = async (userId, fieldsToUpdate) => {
+    const fieldMapping = {
+      dogName: 'DOG_NAME',
+      dogColor: 'D_COLOR',
+      dogWeight: 'D_WEIGHT',
+      dogRace: 'D_RACE',
+      userIcon: 'USER_ICON',
+      lastLocationLat: 'LAST_LOCAT_LAT',
+      lastLocationLong: 'LAST_LOCAT_LONG',
+      dogSize: 'D_SIZE',
+      dogAge: 'D_AGE',
+      dogPersonality: 'D_PERSONALITY',
+      dogHobbies: 'D_HOBBIES',
+    };
+  
+    const setClauses = Object.keys(fieldsToUpdate)
+      .map((key, index) => `${fieldMapping[key]} = @value${index}`)
+      .join(', ');
+
+      console.log("stay strong =",setClauses);
+  
+    const query = `
+      UPDATE USER_DOG
+      SET ${setClauses}
+      WHERE USER_ID = @userId
+    `;
+
+    console.log("tell me more  "+query);
+  
+    const request = pool.request();
+    request.input('userId', sql.Int, userId);
+  
+    Object.values(fieldsToUpdate).forEach((value, index) => {
+      request.input(`value${index}`, sql.NVarChar, value);
+    });
+
+
+    try {
+        const result = await request.query(query);
+        console.log('Update successful:', result);
+        return result;
+      } catch (error) {
+        console.error('Error updating user:', error);
+        throw error; // Rethrow for handling by caller
+      }
+  
+   // return request.query(query);
+  };
+
+  
+
+
 
 module.exports = {
     createUser,
@@ -188,5 +320,6 @@ module.exports = {
     findDogByUserId,
     findUsersForConversation,
     getUsersWithDogsExcludingUser,
-    findUserIdByUsername
+    findUserIdByUsername,
+    updateUser
 };

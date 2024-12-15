@@ -125,6 +125,7 @@ const getFriendStatuses = async (req, res) => {
 };
 
 
+
 module.exports = {
   getFriends,
   sendFriendRequest,

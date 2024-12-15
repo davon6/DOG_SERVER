@@ -104,7 +104,8 @@ const signin = async (req, res) => {
         const refreshToken = jwt.sign({ userId: user.ID }, privateKey, { algorithm: 'RS256', expiresIn: '7d' });
         const dogInfo = await UserModel.findDogByUserId(user.id);
 
-        delete dogInfo["USER_ID"];
+        console.log("here is the issue ?" + JSON.stringify(dogInfo));
+
 
    // Return both tokens
    res.json({ token, refreshToken, dogInfo });
@@ -163,11 +164,38 @@ const notificationTemplates = JSON.parse(
     }
 }
 
+
+const updateUser = async (req, res) => {
+    //await initPool();
+
+
+    const { username, ...updatedFields } = req.body;
+
+
+    console.log("courage !!"+username, updatedFields);
+
+    // Mapping from request body keys to database column names
+
+
+    //console.log("gimme some dreams"+setClauses);
+    const {id} = await  UserModel.findUserByUsername(username);
+
+  const result = await UserModel.updateUser( id, updatedFields);
+
+
+
+  res.status(200).json({ success: true, message: 'User updated successfully' });
+
+   // return result.rowsAffected; // Return number of updated rows
+};
+
+
 module.exports = {
     getUsers,
     findUserByUsername,
     signup,
     signin,
     getUsersAndDogs,
-    getUserNotifications
+    getUserNotifications,
+    updateUser
 };
