@@ -18,6 +18,7 @@ const getFriends = async (req, res) => {
 const sendFriendRequest = async (req, res) => {
   const { username, friendUsername } = req.body;
 
+  console.log("sooooooooo sendfreindrequest ",username, friendUsername);
 
   const ids = await  userModel.findUsersByUsername(username, friendUsername);
 
