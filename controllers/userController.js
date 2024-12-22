@@ -190,11 +190,33 @@ const updateUser = async (req, res) => {
 };
 
 
+
+const signout = async (req, res) => {
+    const { username } = req.body;
+    console.log(" signout username found -->");
+    try {
+        const {id} = await UserModel.findUserByUsername(username);
+
+    //  console.log(" signout id found -->"+id);
+        const signoutConfirmed = await UserModel.signout(id, username);
+
+        console.log(" signout, how did we go ??" + JSON.stringify(signoutConfirmed));
+
+
+   // Return both tokens
+   res.status(200).send()
+    } catch (err) {
+        res.status(500).send({ message: 'Error signing in', error: err.message });
+    }
+};
+
+
 module.exports = {
     getUsers,
     findUserByUsername,
     signup,
     signin,
+    signout,
     getUsersAndDogs,
     getUserNotifications,
     updateUser

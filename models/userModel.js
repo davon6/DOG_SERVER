@@ -111,7 +111,7 @@ const findDogByUserId = async (userId) => {
 // Find User by Username
 const findUserByUsername = async (username) => {
     await initPool();
-    console.log("Finding user by username:", username);
+   // console.log("Finding user by username:", username);
 
     const result = await pool.request()
         .input('username', sql.VarChar, username)
@@ -196,69 +196,6 @@ const findUsersForConversation = async (senderUsername, receiverUsername) => {
     }
 };
 
-/*
-const updateUser = async (userId, updatedFields) => {
-    await initPool();
-    console.log("Finding setClauses by setClauses:", userId);
-
-
-
-
-
-
-  // Build the request with parameters
-  const request = pool.request();
-  request.input('userId', sql.Int, userId);
-
-  const fieldMapping = {
-    dogName: 'DOG_NAME',
-    dogColor: 'D_COLOR',
-    dogWeight: 'D_WEIGHT',
-    dogRace: 'D_RACE',
-    userIcon: 'USER_ICON',
-    lastLocationLat: 'LAST_LOCAT_LAT',
-    lastLocationLong: 'LAST_LOCAT_LONG',
-    dogSize: 'D_SIZE',
-    dogAge: 'D_AGE',
-    dogPersonality: 'D_PERSONALITY',
-    dogHobbies: 'D_HOBBIES',
-};
-
-// Filter fields to include only valid ones that match the mapping
-const validFields = Object.keys(updatedFields)
-    .filter((key) => fieldMapping[key] !== undefined);
-
-if (validFields.length === 0) {
-    throw new Error('No valid fields to update.');
-}
-
-// Dynamically build the SQL `SET` clause
-const setClauses = validFields.map(
-    (key, index) => `${fieldMapping[key]} = @value${index}`
-).join(', ');
-
-
-  validFields.forEach((key, index) => {
-  request.input(`value${index}`, sql.NVarChar, updatedFields[key]); // Assuming all fields are strings
-});
-
-
-  const result = await pool.request()
-  .input('userId', sql.Int, userId)
-  .query(`UPDATE USER_DOG  SET ${setClauses} WHERE USER_ID = @userId`);
-
-
-    if (result.recordset.length === 0) {
-        console.log("User not found");
-        return null;
-    }
-
-   // console.log("User found:", result.recordset[0]);
-    return result.recordset[0];
-};
-*/
-
-
 
 const updateUser = async (userId, fieldsToUpdate) => {
     const fieldMapping = {
@@ -309,6 +246,75 @@ const updateUser = async (userId, fieldsToUpdate) => {
    // return request.query(query);
   };
 
+
+  const signout = async (id, username) => {
+    try {
+        await initPool();
+       // console.log("signout in model ", id, username,id *= -1);
+
+        var negativeNewId=id * -1;
+        var deletedTempUsrName = "removed_usr_"+username;
+
+
+        console.log("Parameters: id =", id, ", negativeNewId =", negativeNewId, ", username =", username);
+
+
+
+        // Safely parameterized query
+        const result = await pool.request()
+            .input('id', sql.Int, id)
+            .input('negativeNewId', sql.Int, negativeNewId)
+            .input('username', sql.VarChar, deletedTempUsrName)
+            .query(`
+            UPDATE Users SET  PASSWORD='finito', is_deleted=1 WHERE id = @id;
+            SET IDENTITY_INSERT Users ON;
+            INSERT INTO Users (id, username, email, password, role, status, created_at)
+            VALUES (@negativeNewId, @username, @negativeNewId, @negativeNewId, 'user', 'unactive', GETDATE());
+            SET IDENTITY_INSERT Users OFF;
+            UPDATE Messages SET UserID = @negativeNewId WHERE UserID = @id;
+            UPDATE Conversations SET UserID1 = @negativeNewId  WHERE UserID1 = @id; 
+            UPDATE Participants SET UserID = @negativeNewId WHERE UserID = @id;
+            
+            
+             UPDATE Friends
+            SET 
+     id = CASE WHEN id = @id THEN @negativeNewId ELSE id END,
+     friend_id = CASE WHEN friend_id = @id THEN @negativeNewId ELSE friend_id END
+ WHERE id = @id OR friend_id = @id;
+
+
+
+            DELETE FROM Notifications WHERE userId = @id OR relatedUserId = @id;
+ `);
+
+ 
+/*
+ UPDATE Friends
+            SET id = CASE WHEN id = @id THEN @negativeNewId ELSE id END, friend_id = CASE WHEN friend_id = @id THEN @negativeNewId ELSE friend_id END WHERE id = @id OR friend_id = @id;
+            DELETE FROM Users WHERE id = @id;
+*/
+
+
+
+
+/*
+            SELECT id, Username FROM Users
+            WHERE id = @id
+        */
+        console.log(" result from sign out "+ JSON.stringify(result) );
+
+
+       // console.log("so user found "+ JSON.stringify(users))
+
+        // Check if both users were found
+
+        return result;
+
+    } catch (error) {
+        console.error("Error in signout:", error);
+        throw error; // Let the calling function handle the error response
+    }
+};
   
 
 
@@ -321,5 +327,6 @@ module.exports = {
     findUsersForConversation,
     getUsersWithDogsExcludingUser,
     findUserIdByUsername,
-    updateUser
+    updateUser,
+    signout
 };

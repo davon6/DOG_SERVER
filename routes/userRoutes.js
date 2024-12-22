@@ -109,6 +109,14 @@ router.post('/dogs', (req, res, next) => {
     userController.getUsersAndDogs(req, res, next); // Call the updated controller
 });
 
+
+router.post('/signOut', verifyToken, (req, res, next) => {
+
+    console.log(`[${new Date().toISOString()}] Received POST request on /signOut`);
+    //console.log('Request Body:', req.body); // Log the request body for debugging
+    userController.signout(req, res, next); // Call the updated controller
+});
+
 /*
 // Protected route example
 router.get('/profile', verifyToken, userController.getProfile); // Only accessible if the token is valid
