@@ -67,7 +67,7 @@ const getUsersWithDogsExcludingUser = async (userId) => {
                      SELECT u.id, u.username, d.dog_name
                      FROM users u
                      INNER JOIN user_dog d ON u.id = d.USER_ID
-                WHERE u.id != @userId;
+                WHERE u.id != @userId AND u.is_deleted != 1;
             `);
 
         console.log('Query result:', result.recordset); // Debugging log

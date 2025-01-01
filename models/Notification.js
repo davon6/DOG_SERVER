@@ -142,6 +142,28 @@ class Notification {
       throw error;
     }
   }
+
+    
+static async getUnreadNotifications(userId) {
+  const pool = await initPool(); // Ensure the pool is initialized
+  const query = `
+      SELECT id, userId, type, extraData, isRead, createdAt
+      FROM Notifications
+      WHERE userId = @userId AND isRead = 0;
+  `;
+
+  const request = pool.request();
+  request.input('userId', sql.Int, userId);
+
+  try {
+      const result = await request.query(query);
+      return result.recordset;
+  } catch (error) {
+      console.error("Error fetching unread notifications:", error);
+      throw error;
+  }
+}
+;
 }
 
 module.exports = Notification;

@@ -3,6 +3,7 @@ const express = require('express');
 const { getUserNotifications } = require('../controllers/userController');
 const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
+const { fetchUnreadNotifications } = require('../controllers/notifications');
 
 // Get notifications for the authenticated user
 //router.get('/notifications', getUserNotifications);
@@ -37,5 +38,10 @@ router.post('/notifications',verifyToken, async (req, res, next)   =>  {
     }
   });
 
+
+  // Route to fetch unread notifications
+router.get('/notifications/:userId/unread', verifyToken, fetchUnreadNotifications);
+
+  
   
 module.exports = router;
