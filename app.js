@@ -68,7 +68,7 @@ wss.on('connection', (ws) => {
   
   // Listen for messages from the client
   ws.on('message', (message) => {
-    console.log(`Received: ${message}`);
+    //console.log(`Received: ${message}`);
     const parsedMessage = JSON.parse(message);
     
     if (parsedMessage.type === 'heartbeat') {
@@ -103,7 +103,7 @@ wss.on('connection', (ws, request) => {
 
   // Listen for incoming messages
   ws.on('message', (message) => {
-    console.log(`Received from ${username}:`, message.toString());
+  //  console.log(`Received from ${username}:`, message.toString());
    // ws.send(`Server received: ${message}`);
   });
 

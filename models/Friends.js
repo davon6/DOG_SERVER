@@ -21,12 +21,17 @@ const getFriends = async (userId) => {
   try {
     const pool = await initPool();
     const query = `
-      SELECT  u.username
-      FROM Users u
-      JOIN Friends f ON (f.id = u.id OR f.friend_id = u.id)
-      WHERE (f.id = @userId OR f.friend_id = @userId)
-      AND f.request_accepted = 1
-      AND u.id != @userId;
+      SELECT u.username
+FROM Users u
+JOIN Friends f ON u.id = f.friend_id
+WHERE f.request_accepted = 1
+  AND f.id = @userId
+  AND EXISTS (
+    SELECT 1
+    FROM Friends f2
+    WHERE f2.id = f.friend_id AND f2.friend_id = @userId AND f2.request_accepted = 1
+  );
+
     `;
     const result = await pool.request().input('userId', sql.Int, userId).query(query);
     return result.recordset;
@@ -46,6 +51,8 @@ console.log("starting  "+userId+ friendId);
     const query = `
       INSERT INTO Friends (id, friend_id, request_accepted)
       VALUES (@userId, @friendId, 0);
+      INSERT INTO Friends (id, friend_id, request_accepted)
+      VALUES (@friendId, @userId, 1);
     `;
     await pool.request().input('userId', sql.Int, userId).input('friendId', sql.Int, friendId).query(query);
 
@@ -97,6 +104,46 @@ const getFriendRelationship = async (userId, otherUserId) => {
     const pool = await poolPromise;
 
     const query = `
+    SELECT
+  CASE
+    WHEN (
+      EXISTS (
+        SELECT 1
+        FROM Friends f1
+        WHERE f1.id = @userId AND f1.friend_id = @otherUserId AND f1.request_accepted = 1
+      )
+      AND EXISTS (
+        SELECT 1
+        FROM Friends f2
+        WHERE f2.id = @otherUserId AND f2.friend_id = @userId AND f2.request_accepted = 1
+      )
+    ) THEN 'friends'
+
+    -- Case when the user has sent a request
+    WHEN (
+      EXISTS (
+        SELECT 1
+        FROM Friends f1
+        WHERE f1.id = @userId AND f1.friend_id = @otherUserId AND f1.request_accepted = 0
+      )
+    ) THEN 'received'
+
+    -- Case when the user has received a request
+    WHEN (
+      EXISTS (
+        SELECT 1
+        FROM Friends f1
+        WHERE f1.id = @otherUserId AND f1.friend_id = @userId AND f1.request_accepted = 0
+      )
+    ) THEN 'sent'
+
+    -- Default case: no relationship
+    ELSE 'none'
+  END AS relationship
+FROM Friends
+WHERE (id = @userId AND friend_id = @otherUserId)
+   OR (id = @otherUserId AND friend_id = @userId);  `;
+/*`
       SELECT
         CASE
           WHEN request_accepted = 1 THEN 'friends'
@@ -108,7 +155,7 @@ const getFriendRelationship = async (userId, otherUserId) => {
       WHERE (id = @userId AND friend_id = @otherUserId)
          OR (id = @otherUserId AND friend_id = @userId);
     `;
-
+*/
     const result = await pool
       .request()
       .input('userId', sql.Int, userId)
@@ -128,6 +175,8 @@ const deleteFriendRequest = async (userId, friendId) => {
     const query = `
       DELETE FROM Friends
       WHERE id = @friendId AND friend_id = @userId;
+      DELETE FROM Friends
+      WHERE id = @userId AND friend_id = @friendId;
     `;
     await pool.request().input('userId', sql.Int, userId).input('friendId', sql.Int, friendId).query(query);
     return { message: 'Friend request deleted' };

@@ -8,8 +8,8 @@ const setupNotificationListener = () => {
         FROM Notifications
         WHERE isRead = 0*/
     request.query(`
-        SELECT 
-        n.createdAt,
+          SELECT 
+    n.createdAt,
     n.id,
     n.type,
     n.isRead,
@@ -21,9 +21,11 @@ JOIN
     Users u1 ON u1.id = n.userId
 JOIN 
     Users u2 ON u2.id = n.relatedUserId
-    WHERE n.wsSent IS NULL OR  n.wsSent = 0;
+WHERE 
+    n.wsSent IS NULL OR n.wsSent = 0;
+
     `
-    
+  //JOIN Users u2 ON u2.id = n.relatedUserId  
     //WHERE  n.isRead = 0
     , (err, result) => {
         if (err) {
@@ -36,9 +38,9 @@ JOIN
         result.recordset.forEach(notification => {
             const { id,username } = notification;
 
-          //  console.log("so the servcie", username);
+         /*   console.log("so the servcie", username);
 
-           // console.log("and the client ",clients);
+              console.log("and the client ",clients);*/
   
            const client = clients.get(username);
 
