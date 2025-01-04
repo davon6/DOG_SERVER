@@ -36,7 +36,9 @@ WHERE
         // console.log('Query Notification set up successfully');
 
         result.recordset.forEach(notification => {
-            const { id,username } = notification;
+            const { id,username, type, relatedUsername } = notification;
+
+            console.log("suup ", notification);
 
          /*   console.log("so the servcie", username);
 
@@ -46,10 +48,17 @@ WHERE
 
             if (client) {
 
+                if(type=='friend_request_accepted'){
+                    client.send(JSON.stringify({ username : relatedUsername}));
+                }
+                
+                
+                client.send(JSON.stringify({ notification }));
 //console.log("we got something !!! notif pulled");
 
                 // Send notification to the WebSocket client
-                client.send(JSON.stringify({ notification }));
+                
+            }
                 const updateRequest = new sql.Request();
                 // Optionally mark notification as read
                 updateRequest.query(`
@@ -63,7 +72,7 @@ WHERE
                         console.log(`Notification ${id} marked as read.`);
                     }
                 });
-            }
+           
         });
 
         // Re-subscribe after notification is triggered
