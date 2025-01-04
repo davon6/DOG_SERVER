@@ -14,6 +14,7 @@ const notificationRoutes = require('./routes/notification');
 const { startWebSocketServer, clients } = require('./wsServer');
 const { setupNotificationListener } = require('./services/notifications');
 
+const { setupRelationshipListener } = require('./services/friends');
 // Load environment variables
 dotenv.config();
 
@@ -157,6 +158,11 @@ console.log('All routes registered');
 
 // Start the server and connect to the database
 const PORT = process.env.PORT || 3000;
+
+
+// Start the relationship listener
+setupRelationshipListener();
+
 
 
 sql.connect(config)

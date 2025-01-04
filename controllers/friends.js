@@ -36,10 +36,13 @@ const sendFriendRequest = async (req, res) => {
 
   try {
     const result = await friendsModel.addFriendRequest(ids[0], ids[1]);
+    notificationsModel.createNotification(ids[0], 'friend_request', ids[1]);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+
+  
 };
 
 const acceptFriendRequest = async (req, res) => {
