@@ -59,6 +59,20 @@ const findUserByUsername = async (req, res) => {
 const signup = async (req, res) => {
     const { username, email, password, dogName, dogColor, dogWeight, dogRace ,dogSize, dogAge, dogPersonality, dogHobbies } = req.body;
 
+
+
+    try {
+
+        const user = await UserModel.findUserByUsername(username);
+
+        console.log("do we make it ?,"+user );
+
+        if(user){res.status(200).json({ message: 'User already exists'})}
+        else{
+
+ 
+        
+
     try {
         // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
@@ -82,6 +96,11 @@ const signup = async (req, res) => {
     } catch (err) {
         res.status(500).json({ message: 'Error creating user', error: err.message });
     }
+}
+} catch (err) {
+    res.status(500).json({ message: 'Error creating user', error: err.message });
+}
+
 };
 
 
