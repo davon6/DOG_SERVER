@@ -10,7 +10,7 @@ const initPool = async () => {
 };
 
 // Create User
-const createUser = async (username, email, password, dogName, dogColor, dogWeight, dogRace, dogSize, dogAge, dogPersonality, dogHobbies) => {
+const createUser = async (username, email, password, dogName, dogColor, dogWeight, dogRace, dogSex, dogSize, dogAge, dogPersonality, dogHobbies) => {
     await initPool();  // Ensure pool is initialized
 
     try {
@@ -35,14 +35,15 @@ const createUser = async (username, email, password, dogName, dogColor, dogWeigh
             .input('dogColor', sql.VarChar, dogColor)
             .input('dogWeight', sql.VarChar, dogWeight)
             .input('dogRace', sql.VarChar, dogRace)
+            .input('dogSex', sql.Int, dogSex)
             .input('lastLocLat', sql.Decimal, null)
             .input('lastLocLong', sql.Decimal, null)
             .input('dogHobbies', sql.VarChar, dogHobbies)
             .input('dogPersonality', sql.VarChar, dogPersonality)
-            .input('dogAge', sql.VarChar, dogAge)
+            .input('dogAge', sql.Decimal, dogAge)
             .input('dogSize', sql.VarChar, dogSize)
-            .query(`INSERT INTO USER_DOG (DOG_NAME, USER_ID, D_COLOR, D_WEIGHT, D_RACE, LAST_LOCAT_LAT, LAST_LOCAT_LONG, D_HOBBIES, D_AGE, D_SIZE, D_PERSONALITY) 
-                    VALUES (@dogName, @userId, @dogColor, @dogWeight, @dogRace, @lastLocLat, @lastLocLong, @dogHobbies, @dogAge, @dogSize, @dogPersonality )`);
+            .query(`INSERT INTO USER_DOG (DOG_NAME, USER_ID, D_COLOR, D_WEIGHT, D_RACE, D_SEX, LAST_LOCAT_LAT, LAST_LOCAT_LONG, D_HOBBIES, D_AGE, D_SIZE, D_PERSONALITY) 
+                    VALUES (@dogName, @userId, @dogColor, @dogWeight, @dogRace, @dogSex, @lastLocLat, @lastLocLong, @dogHobbies, @dogAge, @dogSize, @dogPersonality )`);
 
         await transaction.commit();
         console.log("User and dog inserted successfully");
@@ -203,6 +204,7 @@ const updateUser = async (userId, fieldsToUpdate) => {
       dogColor: 'D_COLOR',
       dogWeight: 'D_WEIGHT',
       dogRace: 'D_RACE',
+      dogSex: 'D_SEX',
       userIcon: 'USER_ICON',
       lastLocationLat: 'LAST_LOCAT_LAT',
       lastLocationLong: 'LAST_LOCAT_LONG',
@@ -224,14 +226,49 @@ const updateUser = async (userId, fieldsToUpdate) => {
       WHERE USER_ID = @userId
     `;
 
-    console.log("tell me more  "+query);
+   
   
     const request = pool.request();
     request.input('userId', sql.Int, userId);
+
+
+    Object.entries(fieldsToUpdate).forEach(([key, value], index) => {
+        console.log("tell me more " + index);
+
+        // Use the key to determine the database type
+        switch (key) {
+            case 'dogAge':
+                request.input(`value${index}`, sql.Decimal, value);
+                break;
+
+            case 'lastLocationLat':
+            case 'lastLocationLong':
+                request.input(`value${index}`, sql.Float, value);
+                break;
+
+            default:
+                request.input(`value${index}`, sql.NVarChar, value);
+                break;
+        }
+    }); 
   
+    /*
     Object.values(fieldsToUpdate).forEach((value, index) => {
-      request.input(`value${index}`, sql.NVarChar, value);
-    });
+
+        console.log("tell me more  "+index);
+
+        switch (key) {
+            case 'dogAge':
+                request.input(`value${index}`, sql.Decimal, value);
+                break;
+
+            default:  request.input(`value${index}`, sql.NVarChar, value);
+            break;
+
+    }
+        
+    
+    });*/
 
 
     try {

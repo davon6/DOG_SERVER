@@ -57,7 +57,7 @@ const findUserByUsername = async (req, res) => {
 
 // Sign Up Handler
 const signup = async (req, res) => {
-    const { username, email, password, dogName, dogColor, dogWeight, dogRace ,dogSize, dogAge, dogPersonality, dogHobbies } = req.body;
+    const { username, email, password, dogName, dogColor, dogWeight, dogRace ,dogSex, dogSize, dogAge, dogPersonality, dogHobbies } = req.body;
 
 
 
@@ -70,15 +70,14 @@ const signup = async (req, res) => {
         if(user){res.status(200).json({ message: 'User already exists'})}
         else{
 
- 
-        
-
+          
+   
     try {
         // Hash the password
         const hashedPassword = await bcrypt.hash(password, 10);
         
         // Create new user in the database
-        const newUser = await UserModel.createUser(username, email, hashedPassword,  dogName, dogColor, dogWeight, dogRace ,dogSize, dogAge, dogPersonality, dogHobbies);
+        const newUser = await UserModel.createUser(username, email, hashedPassword,  dogName, dogColor, dogWeight, dogRace , dogSex, dogSize, dogAge, dogPersonality, dogHobbies);
  
       //  console.log( 'User created successfully'+ newUser[0].userId  );
 
