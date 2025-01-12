@@ -13,6 +13,7 @@ const friendsRoutes = require('./routes/friends');
 const notificationRoutes = require('./routes/notification');
 const { startWebSocketServer, clients } = require('./wsServer');
 const { setupNotificationListener } = require('./services/notifications');
+//const { setupMessageListener } = require('./services/message');
 const messagesRoutes = require('./routes/message');
 
 const { setupRelationshipListener } = require('./services/friends');
@@ -164,7 +165,7 @@ const PORT = process.env.PORT || 3000;
 
 // Start the relationship listener
 setupRelationshipListener();
-
+//setupMessageListener();
 
 
 sql.connect(config)

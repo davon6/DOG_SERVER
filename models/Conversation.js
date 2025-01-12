@@ -1,5 +1,5 @@
 const { sql, poolPromise } = require('../config/db');
-
+const { clients } = require('../wsServer');
 let pool;
 
 // Initialize the pool once, with retries if necessary
@@ -100,6 +100,12 @@ static async findOrCreateConversation(senderId, receiverId) {
         `);
 
         const messageId = result.recordset[0].MessageID; // Extracting MessageID
+
+console.log("lets move on ---------->>>>>>>"+JSON.stringify(result.recordset[0]));
+
+
+
+
 /*FOR LATER MULTI PARTICIPANTS
         // Insert rows into the MessageStatus table for each recipient
         // For simplicity, we assume a 2-user conversation for now
@@ -114,7 +120,7 @@ static async findOrCreateConversation(senderId, receiverId) {
 */
 
 await pool.request().query(`
-  INSERT INTO MessageStatus (MessageID, UserID, IsRead, WSSent)
+  INSERT INTO MessageStatus (MessageID, UserID, IsRead)
   VALUES (${messageId}, (SELECT CASE 
                                   WHEN U1.id != ${userId} THEN U1.id 
                                   ELSE U2.id 
@@ -122,7 +128,7 @@ await pool.request().query(`
                          FROM Conversations C
                          JOIN Users U1 ON C.UserID1 = U1.id
                          JOIN Users U2 ON C.UserID2 = U2.id
-                         WHERE C.ConversationID = ${conversationId}), 0, 0);
+                         WHERE C.ConversationID = ${conversationId}), 0);
 `);
 
 
@@ -134,6 +140,58 @@ await pool.request().query(`
     }
 }
 
+
+
+
+static async notifyUsers(conversationId, messageId, senderUsername, text) {
+console.log("notifyUsers(conversationId, messageId,--->> ",senderUsername);
+
+  try {
+      // Retrieve all participants for the conversation
+      const participants = await pool.request().query(`
+          SELECT U.username, U.id FROM Users U
+          JOIN Conversations C ON (U.id = C.UserID1 OR U.id = C.UserID2)
+          WHERE C.ConversationID = ${conversationId} AND U.username != '${senderUsername}'
+      `);
+
+      // For each participant, check if they are connected via WebSocket
+      participants.recordset.forEach(participant => {
+
+
+          //const client = clients[participant.username];  // Assuming `clients` maps usernames to WebSocket clients
+          const client = clients.get(participant.username);
+          
+          console.log("---------------------------->participant.username"+ participant.username);
+          
+             console.log("---------------------------->clients ");
+       clients.forEach((value, key) => {
+            console.log(`Username: ${key}, Client: ${value}`);
+        });
+
+        console.log("---------------------------->clients ", client);
+
+          if (client) {
+
+
+            console.log("of course we detected the client --->", client);
+              // Send the message to the WebSocket client
+              client.send(JSON.stringify({
+                notification : {
+                  messageId,
+                  conversationId,
+                  senderUsername,
+                  text,
+                  timestamp: new Date().toISOString(),
+                  isRead: false,
+                  type: "msg"
+           } }));
+          }
+      });
+  } catch (error) {
+      console.error("Error notifying users:", error);
+      throw error;
+  }
+};
 
 
 static async getConversationsForUser(userId) {
@@ -212,13 +270,14 @@ console.log("in get Messages with unread this itme filter by user id --->>", use
     const hasMore = offset + messages.recordset.length < totalMessages;
 
     const formattedMessages = messages.recordset.map(msg => ({
+      
       id: msg.id.toString(),
       conversationId: msg.ConversationID.toString(),
       senderUsername: msg.Username,
       text: msg.Text,
       timestamp: msg.Timestamp.toISOString(),
       isRead: !!msg.IsRead, // Convert isRead to boolean
-    }));
+     }));
 
     // Log the formatted messages for debugging
     console.log("----------------------->>>> checking isRead", JSON.stringify(formattedMessages, null, 2));

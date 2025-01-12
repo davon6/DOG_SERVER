@@ -26,9 +26,9 @@ class Notification {
     `;
 
     const request = pool.request();
-    request.input('userId', sql.Int, userId);
+    request.input('userId', sql.Int, relatedUserId);
     request.input('type', sql.VarChar, type);
-    request.input('relatedUserId', sql.Int, relatedUserId);
+    request.input('relatedUserId', sql.Int,  userId);
     request.input('extraData', sql.NVarChar, extraData);
 
     try {

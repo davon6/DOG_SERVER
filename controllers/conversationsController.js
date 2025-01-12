@@ -32,11 +32,6 @@ console.log("hereeee"+ JSON.stringify(sender), JSON.stringify(receiver));
 
         try {
             // Retrieve sender's UserID
-  /*          const userResult = await sql.query`
-                SELECT id FROM Users WHERE Username = ${senderUsername}`;
-*/
-
-
             const user  = await User.findUserByUsername(senderUsername);
 
 
@@ -47,6 +42,12 @@ console.log("hereeee"+ JSON.stringify(sender), JSON.stringify(receiver));
 
             // Add the message to the conversation
             const messageID = await Conversation.addMessage(conversationId, user.id, text);
+
+console.log("notifyUsers(conversationId, messageID, ------>>>>>", JSON.stringify(user.USERNAME));
+
+
+            await Conversation.notifyUsers(conversationId, messageID, user.USERNAME, text);
+
 
             res.json({ messageID, success: true });
         } catch (error) {

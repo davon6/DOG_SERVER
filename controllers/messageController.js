@@ -22,7 +22,7 @@ class MessageController {
       
       const hasMore = parseInt(offset) + messages.length < totalMessages;
 
-      console.log("messages.length " + messages.length + " in messageController: " + JSON.stringify(messages) + " hasMore: " + hasMore);
+      //console.log("messages.length " + messages.length + " in messageController: " + JSON.stringify(messages) + " hasMore: " + hasMore);
 
       res.json({ messages, hasMore });
     } catch (error) {
