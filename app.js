@@ -13,6 +13,7 @@ const friendsRoutes = require('./routes/friends');
 const notificationRoutes = require('./routes/notification');
 const { startWebSocketServer, clients } = require('./wsServer');
 const { setupNotificationListener } = require('./services/notifications');
+const messagesRoutes = require('./routes/message');
 
 const { setupRelationshipListener } = require('./services/friends');
 // Load environment variables
@@ -154,6 +155,7 @@ app.use('/api/users', userRoutes); // Consistent API route for users
 app.use('/api/conversations', conversationsRoutes);
 app.use('/api/friends', friendsRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/messages', messagesRoutes)
 console.log('All routes registered');
 
 // Start the server and connect to the database
