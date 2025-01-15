@@ -59,7 +59,7 @@ static async findOrCreateConversation(senderId, receiverId) {
   
   
 
-
+/*
 
   // Method to add a message to a conversation
   static async addMessage(conversationId, userId, text) {
@@ -75,14 +75,14 @@ static async findOrCreateConversation(senderId, receiverId) {
         
         SELECT MessageID FROM @InsertedMessages;`);
         
-        const messageId = result.recordset[0].MessageID; // Extracting MessageID from the result set
-    return messageId;
+        const { MessageID, Timestamp } = result.recordset[0]; // Extracting MessageID from the result set
+    return { MessageID, Timestamp };
 
     } catch (error) {
       console.error("Error in addMessage:", error);
       throw error;
     }
-  }
+  }*/
 
   static async addMessage(conversationId, userId, text) {
     try {
@@ -90,16 +90,16 @@ static async findOrCreateConversation(senderId, receiverId) {
 
         // Insert the message into the Messages table and retrieve the MessageID
         const result = await pool.request().query(`
-            DECLARE @InsertedMessages TABLE (MessageID INT);
+            DECLARE @InsertedMessages TABLE (MessageID INT, Timestamp DATETIME);
 
             INSERT INTO Messages (ConversationID, UserID, Text, Timestamp)
-            OUTPUT INSERTED.MessageID INTO @InsertedMessages
+            OUTPUT INSERTED.MessageID, INSERTED.Timestamp INTO @InsertedMessages
             VALUES (${conversationId}, ${userId}, '${text}', GETDATE());
             
-            SELECT MessageID FROM @InsertedMessages;
+            SELECT MessageID, Timestamp FROM @InsertedMessages;
         `);
 
-        const messageId = result.recordset[0].MessageID; // Extracting MessageID
+        const { MessageID, Timestamp } = result.recordset[0];// Extracting MessageID
 
 console.log("lets move on ---------->>>>>>>"+JSON.stringify(result.recordset[0]));
 
@@ -121,7 +121,7 @@ console.log("lets move on ---------->>>>>>>"+JSON.stringify(result.recordset[0])
 
 await pool.request().query(`
   INSERT INTO MessageStatus (MessageID, UserID, IsRead)
-  VALUES (${messageId}, (SELECT CASE 
+  VALUES (${MessageID}, (SELECT CASE 
                                   WHEN U1.id != ${userId} THEN U1.id 
                                   ELSE U2.id 
                               END
@@ -132,7 +132,7 @@ await pool.request().query(`
 `);
 
 
-        return messageId;
+return { MessageID, Timestamp };
 
     } catch (error) {
         console.error("Error in addMessage:", error);
@@ -143,8 +143,8 @@ await pool.request().query(`
 
 
 
-static async notifyUsers(conversationId, messageId, senderUsername, text) {
-console.log("notifyUsers(conversationId, messageId,--->> ",senderUsername);
+static async notifyUsers(conversationId, messageId, senderUsername, text, Timestamp) {
+console.log("notifyUsers(conversationId, messageId,--->> ",Timestamp);
 
   try {
       // Retrieve all participants for the conversation
@@ -181,7 +181,7 @@ console.log("notifyUsers(conversationId, messageId,--->> ",senderUsername);
                   conversationId,
                   senderUsername,
                   text,
-                  timestamp: new Date().toISOString(),
+                  timestamp: Timestamp,//new Date().toISOString(),
                   isRead: false,
                   type: "msg"
            } }));
