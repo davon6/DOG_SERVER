@@ -100,13 +100,13 @@ class Notification {
       if (response === 'accept') {
         query = `
           UPDATE Notifications
-          SET type = 'friend_accepted', isRead = 1
+          SET type = 'friend_accepted', isRead = 0
           WHERE id = @notificationId;
         `;
       } else if (response === 'decline') {
         query = `
           UPDATE Notifications
-          SET type = 'friend_declined',  isRead = 1
+          SET type = 'friend_declined',  isRead = 0
           WHERE id = @notificationId;
         `;
       }

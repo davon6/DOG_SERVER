@@ -1,4 +1,5 @@
 const { sql, poolPromise } = require('../config/db');
+const { clients } = require('../wsServer');
 
 let pool;
 
@@ -65,8 +66,12 @@ console.log("starting  "+userId+ friendId);
 };
 
 // Accept a friend request
-const acceptFriendRequest = async (userId, friendId) => {
+const acceptFriendRequest = async (userId, friendId,  username, relatedUsername) => {
   try {
+
+
+    
+console.log("acceptFriendRequest ok ------------------------->>>>");
     const pool = await initPool();
     const query = `
       UPDATE Friends
@@ -74,6 +79,52 @@ const acceptFriendRequest = async (userId, friendId) => {
       WHERE id = @userId AND friend_id = @friendId;
     `;
     await pool.request().input('userId', sql.Int, userId).input('friendId', sql.Int, friendId).query(query);
+    
+    
+    const checkQuery = `
+      SELECT COUNT(*) AS matchCount
+      FROM Friends
+      WHERE 
+        (id = @userId AND friend_id = @friendId AND request_accepted = 1)
+        OR
+        (id = @friendId AND friend_id = @userId AND request_accepted = 1);
+    `;
+    const result = await pool.request()
+      .input("userId", sql.Int, userId)
+      .input("friendId", sql.Int, friendId)
+      .query(checkQuery);
+
+      console.log("matchCount ok ------------------------->>>>");
+
+    // Check if both rows are updated to request_accepted = 1
+    const matchCount = result.recordset[0].matchCount
+
+console.log("chekcing relationships are bth ok ---->>>>"+matchCount);
+
+if (matchCount === 2) {
+  //res.json({ success: true, areFriends: true });
+  const client1 = clients.get(username);
+  const client2 = clients.get(relatedUsername);
+
+
+
+
+  if (client1) {
+
+      console.log("---------->>>>> we found client 1"+ username);
+
+      client1.send(JSON.stringify({notification : { type: 'relationship_update', username: relatedUsername }}));
+  }
+
+  if (client2) {
+
+    console.log("---------->>>>> we found client 2"+ relatedUsername);
+
+      client2.send(JSON.stringify({notification : { type: 'relationship_update', username: username }}));
+  }
+}
+    
+    
     return { message: 'Friend request accepted' };
   } catch (error) {
     console.error("Error accepting friend request:", error);

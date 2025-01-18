@@ -56,7 +56,7 @@ console.log("processing acceptance friend request",  username, relatedUsername, 
 
   try {
     // Accept the friend request
-    const result = await friendsModel.acceptFriendRequest(ids[0], ids[1]);
+    const result = await friendsModel.acceptFriendRequest(ids[1], ids[0],  username, relatedUsername);
 
     // Mark the notification as read
     await notificationsModel.updateNotificationResponse(notificationId, 'accept');

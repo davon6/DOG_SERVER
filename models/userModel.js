@@ -153,15 +153,29 @@ const findUsersByUsername = async (username, userNameFriend) => {
     const result = await pool.request()
         .input('username', sql.VarChar, username)
         .input('username2', sql.VarChar, userNameFriend)
-        .query('SELECT id FROM USERS WHERE USERNAME = @username OR  USERNAME = @username2');
+        .query('SELECT id, USERNAME FROM USERS WHERE USERNAME = @username OR USERNAME = @username2');
 
     if (result.recordset.length === 0) {
         console.log("User not found");
         return null;
     }
 
-    console.log("User found:", result.recordset);
-    return [result.recordset[0].id,result.recordset[1].id];
+    // Map the result to ensure the order matches the input usernames
+    const userMap = result.recordset.reduce((map, user) => {
+        map[user.USERNAME] = user.id;
+        return map;
+    }, {});
+
+    const id1 = userMap[username];
+    const id2 = userMap[userNameFriend];
+
+    if (!id1 || !id2) {
+        console.log("One or both users not found");
+        return null;
+    }
+
+    console.log("User IDs found:", { id1, id2 });
+    return [id1, id2];
 };
 
 
