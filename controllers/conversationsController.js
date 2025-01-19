@@ -30,6 +30,8 @@ console.log("hereeee"+ JSON.stringify(sender), JSON.stringify(receiver));
     static async sendMessage(req, res) {
         const { conversationId, senderUsername, text } = req.body;
 
+        console.log("---------------------->>>>>>>>>>>>>>>>>>>>>>>>> did we loose api ? sedMesssage")
+
         try {
             // Retrieve sender's UserID
             const user  = await User.findUserByUsername(senderUsername);

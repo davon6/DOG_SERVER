@@ -159,7 +159,7 @@ console.log("notifyUsers(conversationId, messageId,--->> ",Timestamp);
 
 
           //const client = clients[participant.username];  // Assuming `clients` maps usernames to WebSocket clients
-          const client = clients.get(participant.username);
+          const client = clients.get(participant.username).ws;
           
           console.log("---------------------------->participant.username"+ participant.username);
           

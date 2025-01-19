@@ -15,8 +15,13 @@ const { startWebSocketServer, clients } = require('./wsServer');
 const { setupNotificationListener } = require('./services/notifications');
 //const { setupMessageListener } = require('./services/message');
 const messagesRoutes = require('./routes/message');
-
+const UserModel = require('./models/userModel');
 const { setupRelationshipListener } = require('./services/friends');
+
+// FOR LATER const { addUserLocation, findUsersWithinRadius, removeUserLocation , initializeRedis} = require('./redis');
+const { updateLocation, findNearbyUsers, removeLocation } = require('./localCache');
+
+
 // Load environment variables
 dotenv.config();
 
@@ -58,69 +63,132 @@ var server = http.createServer(service);
 
 */
 
+ 
 
-
-
+//initializeRedis();
 
 const wss = new WebSocket.Server({ server/*, path: '/wsss' */});
 
 
-
-wss.on('connection', (ws) => {
-  console.log('New client connected');
-  
-  // Listen for messages from the client
-  ws.on('message', (message) => {
-    //console.log(`Received: ${message}`);
-    const parsedMessage = JSON.parse(message);
-    
-    if (parsedMessage.type === 'heartbeat') {
-      ws.send(JSON.stringify({ type: 'heartbeat', status: 'alive' })); // Respond to heartbeats
-    }
-  });
-
-  ws.on('close', () => console.log('Client disconnected'));
-});
-
-
-
-
 // WebSocket connection handling
-wss.on('connection', (ws, request) => {
+wss.on('connection', async (ws, request) => {
   const url = new URL(request.url, `http://${request.headers.host}`);
   const username = url.searchParams.get('username'); // Safely extract 'username'
 
-  if (username) {
-    clients.set(username, ws);
-    console.log(`User ${username} connected`);
-
-  //  console.log("just checking", clients);
-  } else {
+  if (!username) {
     console.log('No username provided. Closing connection.');
     ws.close();
     return;
   }
 
-  // Send a welcome message to the client
- // ws.send('Welcome to the WebSocket server!');
 
-  // Listen for incoming messages
+  const {id} = await UserModel.findUserByUsername(username);
+
+  const dog = await UserModel.findDogByUserId(id);
+
+
+
+  // Store WebSocket client in the clients map
+  clients.set(username, {ws, id, dog});
+  console.log(`User ${username} connected`);
+
+  // Send welcome message
+  ws.send(JSON.stringify({ status: 'success', message: 'Welcome to the WebSocket server!' }));
+
+  // Set up heartbeat handling
+  const heartbeatInterval = setInterval(() => {
+    if (ws.readyState === WebSocket.OPEN) {
+      //ws.send(JSON.stringify({ type: 'heartbeat', status: 'alive' }));
+    } else {
+      clearInterval(heartbeatInterval); // Stop heartbeat when the connection is closed
+    }
+  }, 15000);
+
+  // Handle incoming messages
   ws.on('message', (message) => {
-  //  console.log(`Received from ${username}:`, message.toString());
-   // ws.send(`Server received: ${message}`);
+    try {
+   //   console.log(`Message from ${username}: ${message}`);
+      const data = JSON.parse(message);
+/*
+console.log("statin slow ----->");
+console.log("statin slow ----->"+clients.get(username));
+console.log("statin slow ----->"+clients.get(username).id);
+console.log("statin slow ----->"+clients.get(username).dog);
+console.log("statin slow ----->"+JSON.stringify(clients.get(username).dog));
+*/
+      let clientForLocalCache = clients.get(username)
+      handleClientMessage(data, ws, username, clientForLocalCache.id, clientForLocalCache.dog);
+    } catch (err) {
+      console.error(`Error processing message from ${username}:`, err.message);
+      ws.send(JSON.stringify({ status: 'error', message: 'Invalid message format' }));
+    }
   });
 
   // Handle client disconnect
   ws.on('close', () => {
     console.log(`Client ${username} disconnected`);
-    clients.delete(username); // Remove the client from the Map
+    removeLocation(username); // Remove user location from cache
+    clients.delete(username); // Remove client from the map
+    clearInterval(heartbeatInterval); // Clear heartbeat interval
   });
 
+  // Handle WebSocket errors
   ws.on('error', (err) => {
     console.error(`WebSocket error for ${username}:`, err.message);
   });
-  
 });
+
+/**
+ * Handle messages from the client
+ * @param {Object} data - The parsed message data
+ * @param {WebSocket} ws - The WebSocket connection
+ * @param {string} username - The username of the client
+ */
+function handleClientMessage(data, ws, username, id, dog) {
+  const { type, lat, long, radius } = data;
+
+  switch (type) {
+    case 'updateLocation': {
+      // Update user location in the local cache
+      if (lat == null || long == null) {
+        ws.send(JSON.stringify({ status: 'error', message: 'Invalid location data' }));
+        return;
+      }
+
+      updateLocation(username, lat, long, id, dog); // Add or update location in cache
+      ws.send(JSON.stringify({ status: 'success', message: 'Location updated' }));
+
+      // Optionally, find nearby users after updating location
+      const nearbyUsers = findNearbyUsers(username, lat, long, radius|| 1);
+      ws.send(JSON.stringify({notification : { type: 'userGeoLocated',  data: nearbyUsers }}));
+      break;
+    }
+
+    case 'findNearby': {
+      // Find users nearby
+      if (lat == null || long == null || radius == null) {
+        ws.send(JSON.stringify({ status: 'error', message: 'Invalid location or radius data' }));
+        return;
+      }
+
+      const nearbyUsers = findNearbyUsers(username, lat, long, radius);
+      ws.send(JSON.stringify({ status: 'success', message: 'Nearby users found', data: nearbyUsers }));
+      break;
+    }
+
+    case 'heartbeat': {
+      // Respond to heartbeat messages (optional, if needed)
+      //ws.send(JSON.stringify({ status: 'success', message: 'Heartbeat received' }));
+      break;
+    }
+
+    default: {
+      ws.send(JSON.stringify({ status: 'error', message: 'Unknown command' }));
+      break;
+    }
+  }
+};
+
    
 const { sql, config } = require('./config/db');
 // Database configuration

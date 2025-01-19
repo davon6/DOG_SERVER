@@ -103,8 +103,8 @@ console.log("chekcing relationships are bth ok ---->>>>"+matchCount);
 
 if (matchCount === 2) {
   //res.json({ success: true, areFriends: true });
-  const client1 = clients.get(username);
-  const client2 = clients.get(relatedUsername);
+  const client1 = clients.get(username).ws;
+  const client2 = clients.get(relatedUsername).ws;
 
 
 

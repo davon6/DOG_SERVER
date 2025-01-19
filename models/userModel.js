@@ -109,6 +109,9 @@ const findDogByUserId = async (userId) => {
     return dogResult.recordset[0]; // Return the first record
 };
 
+
+
+
 // Find User by Username
 const findUserByUsername = async (username) => {
     await initPool();
