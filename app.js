@@ -127,7 +127,12 @@ console.log("statin slow ----->"+JSON.stringify(clients.get(username).dog));
   // Handle client disconnect
   ws.on('close', () => {
     console.log(`Client ${username} disconnected`);
-    removeLocation(username); // Remove user location from cache
+   const  { lat, long} = removeLocation(username); // Remove user location from cache
+
+    UserModel.saveupUserLastLocation(username, lat, long);
+   
+    console.log(`we saved " ${username} last location`);
+
     clients.delete(username); // Remove client from the map
     clearInterval(heartbeatInterval); // Clear heartbeat interval
   });

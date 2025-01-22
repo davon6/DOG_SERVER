@@ -99,12 +99,12 @@ console.log("acceptFriendRequest ok ------------------------->>>>");
     // Check if both rows are updated to request_accepted = 1
     const matchCount = result.recordset[0].matchCount
 
-console.log("chekcing relationships are bth ok ---->>>>"+matchCount);
+console.log("chekcing relationships are both ok ---->>>>"+matchCount);
 
 if (matchCount === 2) {
   //res.json({ success: true, areFriends: true });
-  const client1 = clients.get(username).ws;
-  const client2 = clients.get(relatedUsername).ws;
+  const client1 = clients.get(username);
+  const client2 = clients.get(relatedUsername);
 
 
 
@@ -113,14 +113,14 @@ if (matchCount === 2) {
 
       console.log("---------->>>>> we found client 1"+ username);
 
-      client1.send(JSON.stringify({notification : { type: 'relationship_update', username: relatedUsername }}));
+      client1.ws.send(JSON.stringify({notification : { type: 'relationship_update', username: relatedUsername }}));
   }
 
   if (client2) {
 
     console.log("---------->>>>> we found client 2"+ relatedUsername);
 
-      client2.send(JSON.stringify({notification : { type: 'relationship_update', username: username }}));
+      client2.ws.send(JSON.stringify({notification : { type: 'relationship_update', username: username }}));
   }
 }
     

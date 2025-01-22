@@ -371,6 +371,50 @@ const updateUser = async (userId, fieldsToUpdate) => {
 };
   
 
+const saveupUserLastLocation = async (username, lat, long) => {
+    const {id }= await findUserIdByUsername(username);
+
+console.log("saveup loc atin we got the userid)", id)
+
+    try {
+        await initPool(); // Initialize the database connection pool
+
+        const query = `
+            UPDATE USER_DOG
+            SET LAST_LOCAT_LAT = @lat,
+                LAST_LOCAT_LONG = @long
+            WHERE USER_ID = @id
+        `;
+
+        const loginQuery = `
+        UPDATE USERS
+        SET LASTLOGIN = @lastLogin
+        WHERE ID = @id
+    `;
+
+    // Get the current datetime
+    const currentDateTime = new Date();
+
+        const pool = await sql.connect(); // Ensure connection is initialized
+        await pool.request()
+            .input('lat', sql.Decimal(10, 6), lat)    // Bind latitude
+            .input('long', sql.Decimal(10, 6), long)  // Bind longitude
+            .input('id', sql.Int, id)        // Bind user ID
+            .query(query);
+
+        console.log('User location updated successfully');
+
+           // Update last login in USERS
+           await request
+           .input('lastLogin', sql.DateTime, currentDateTime) // Bind current date and time
+           .input('id', sql.Int, id)                         // Bind user ID
+           .query(loginQuery);
+
+       console.log('User last login time updated successfully');
+    } catch (err) {
+        console.error('Error updating user location:', err);
+    }
+};
 
 
 module.exports = {
@@ -382,5 +426,6 @@ module.exports = {
     getUsersWithDogsExcludingUser,
     findUserIdByUsername,
     updateUser,
-    signout
+    signout,
+    saveupUserLastLocation
 };
