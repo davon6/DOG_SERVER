@@ -77,7 +77,7 @@ router.post('/token/refresh', (req, res) => {
         console.log("Refresh token verified, generating new access token");
 
         // If the token is valid, generate a new access token
-        const accessToken = jwt.sign({ userId: user.userId }, privateKey, { algorithm: 'RS256', expiresIn: '10s' });//15m
+        const accessToken = jwt.sign({ userId: user.userId }, privateKey, { algorithm: 'RS256', expiresIn: '1h' });//15m
 
         // Send the new access token as JSON
         return res.json({ accessToken });

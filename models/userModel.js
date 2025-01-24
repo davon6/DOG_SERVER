@@ -388,7 +388,7 @@ console.log("saveup loc atin we got the userid)", id)
 
         const loginQuery = `
         UPDATE USERS
-        SET LASTLOGIN = @lastLogin
+        SET LAST_LOGIN = @lastLogin
         WHERE ID = @id
     `;
 
@@ -405,7 +405,7 @@ console.log("saveup loc atin we got the userid)", id)
         console.log('User location updated successfully');
 
            // Update last login in USERS
-           await request
+           await pool.request()
            .input('lastLogin', sql.DateTime, currentDateTime) // Bind current date and time
            .input('id', sql.Int, id)                         // Bind user ID
            .query(loginQuery);
