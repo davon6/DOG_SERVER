@@ -13,9 +13,9 @@ const friendsRoutes = require('./routes/friends');
 const notificationRoutes = require('./routes/notification');
 const messagesRoutes = require('./routes/message');
 
-const { setupNotificationListener } = require('./services/notifications');
-const { setupRelationshipListener } = require('./services/friends');
-const { sql, config } = require('./config/db');
+//const { setupNotificationListener } = require('./services/notifications');
+//const { setupRelationshipListener } = require('./services/friends');
+const { pool } = require('./config/db');
 const { initializeWebSocketServer } = require('./wsServer');
 
 // Load environment variables
@@ -43,14 +43,16 @@ console.log('All routes registered');
 initializeWebSocketServer(server);
 
 // Start the relationship listener
-setupRelationshipListener();
+//setupRelationshipListener();
 
 // Database connection and startup
 const PORT = process.env.PORT || 3000;
-sql.connect(config)
-    .then(() => {
-        console.log('Connected to MSSQL');
-        setupNotificationListener();
+pool
+    .connect()
+    .then(client => {
+        console.log('Connected to PostgreSQL');
+        client.release(); // Release the client back to the pool
+      //  setupNotificationListener(); // Setup any event listeners or logic after a successful connection
     })
     .catch(err => {
         console.error('Database connection failed:', err);

@@ -32,5 +32,4 @@ yarn-error.log
 # Environment variables
 .env
 
-config/public.pem
-config/private.pem
+
