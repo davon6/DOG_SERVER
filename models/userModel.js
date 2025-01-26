@@ -180,7 +180,7 @@ const saveupUserLastLocation = async (username, lat, long) => {
         UPDATE public."USER_DOG"
         SET LAST_LOCAT_LAT = $1,
             LAST_LOCAT_LONG = $2
-        WHERE USER_ID = $3;
+        WHERE "USER_ID" = $3;
     `;
     await executeQuery(query, [lat, long, user.id]);
     console.log('User location updated successfully');
