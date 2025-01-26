@@ -1,37 +1,24 @@
-const { sql, poolPromise } = require('../config/db');
-
-let pool;
-
-// Initialize the pool
-const initPool = async () => {
-  try {
-    if (!pool) {
-      pool = await poolPromise;
-      console.log("Database pool initialized");
-    }
-  } catch (error) {
-    console.error("Error initializing database pool:", error);
-    throw error;
-  }
-};
+const { pool } = require('../config/db'); 
+// Ensure this connects to your PostgreSQL database // Use the PostgreSQL pool for connections
 
 class Message {
+  /**
+   * Mark all messages in a conversation as read.
+   * @param {number} conversationId - The ID of the conversation.
+   * @returns {Object} - Success message.
+   */
   static async markMessagesAsRead(conversationId) {
     try {
-      await initPool();
-
-      await pool.request()
-        .input('ConversationID', sql.Int, conversationId)
-        .query(`
-          UPDATE MessageStatus
-          SET IsRead = 1
-          WHERE MessageID IN (
-            SELECT MessageID
-            FROM Messages
-            WHERE ConversationID = @ConversationID
-          );
-        `);
-
+      const query = `
+        UPDATE message_status
+        SET is_read = true
+        WHERE message_id IN (
+          SELECT id
+          FROM messages
+          WHERE conversation_id = $1
+        );
+      `;
+      await pool.query(query, [conversationId]);
       return { success: true };
     } catch (error) {
       console.error('Error in Message.markMessagesAsRead:', error);
@@ -39,20 +26,21 @@ class Message {
     }
   }
 
+  /**
+   * Get all messages for a specific conversation, ordered by timestamp.
+   * @param {number} conversationId - The ID of the conversation.
+   * @returns {Array} - List of messages.
+   */
   static async getMessagesByConversationId(conversationId) {
     try {
-      await initPool();
-
-      const result = await pool.request()
-        .input('ConversationID', sql.Int, conversationId)
-        .query(`
-          SELECT * 
-          FROM Messages
-          WHERE ConversationID = @ConversationID
-          ORDER BY Timestamp DESC;
-        `);
-
-      return result.recordset;
+      const query = `
+        SELECT * 
+        FROM messages
+        WHERE conversation_id = $1
+        ORDER BY timestamp DESC;
+      `;
+      const { rows } = await pool.query(query, [conversationId]);
+      return rows;
     } catch (error) {
       console.error('Error in Message.getMessagesByConversationId:', error);
       throw error;

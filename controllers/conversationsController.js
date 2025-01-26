@@ -73,22 +73,20 @@ console.log("notifyUsers(conversationId, messageID, ------>>>>>", JSON.stringify
 
 
     static async getAllConversations(req, res) {
-console.log("oh yeaah");
+
      console.log("in controller getAllConversations"+ JSON.stringify(req.query));
 
      const user  = await User.findUserByUsername(req.query.username);
+
+
+     console.log("oh yeaah---->",user);
 
       //  const { userId } = req.query; // Assuming userId is passed as a query parameter
     
       //const { userId } = user;
 
         try {
-          //await Conversation.initPool();
-    
-         // const conversations = await Conversation.getConversationsForUser(userId);
-    //hard coded for testing
 
-    //const conversations = await Conversation.getConversationsForUser(32);
     const conversations = await Conversation.getConversationsForUser(user.id);
           res.json(conversations);
         } catch (error) {

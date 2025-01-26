@@ -9,7 +9,7 @@ const jwt = require('jsonwebtoken');
 const privateKey = fs.readFileSync(path.join(__dirname, '../config/private.pem'), 'utf8');
 
 
-router.get('/', userController.getUsers);
+//router.get('/', userController.getUsers);
 
 //router.post('/find', userController.findUserByUsername);  // Route to handle POST requests
 
@@ -39,7 +39,7 @@ router.post('/update',verifyToken,  userController.updateUser);
 // Sign Up Route
 //router.post('/signup', userController.signup);
 router.post('/signup', (req, res, next) => {
-  //  console.log('Received POST request on /signup'); // Debugging log
+    console.log('Received POST request on /signup'); // Debugging log
     userController.signup(req, res, next);
 });
 

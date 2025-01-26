@@ -155,30 +155,17 @@ const getUsersAndDogs = async (username/*req, res*/) => {
 
 
 
-async function getUserNotifications(username/*req, res*/) {
+async function getUserNotifications(req, res, username) {
     try {
+        const { id } = await UserModel.findUserIdByUsername(username);
 
-
-        
-
-        const { id}= await UserModel.findUserIdByUsername(username);
-
-        //const userId = req.user.id; // assuming you have middleware to attach the userId
+        // Assuming you have middleware to attach the userId
         const notifications = await Notification.getUserNotifications(id);
 
-
-
-
-/*
-const notificationTemplates = JSON.parse(
-    fs.readFileSync(path.resolve(__dirname+'\\config\\', 'notifications.json'), 'utf-8')
-  );*/
-
-        // res.status(200).json(notifications);
-        console.log("my god we went a long way"+ JSON.stringify(notifications));
-        return notifications
+        res.status(200).json({ notifications });
     } catch (error) {
-        res.status(500).json({ error: 'Error fetching notifications' });
+        console.error(error);
+        res.status(500).json({ error: 'An error occurred while fetching notifications' });
     }
 }
 

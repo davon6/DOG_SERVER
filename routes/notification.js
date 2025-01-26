@@ -27,7 +27,7 @@ router.post('/notifications',verifyToken, async (req, res, next)   =>  {
       }
   
       // Fetch notifications
-      const  notifications = await getUserNotifications(username);
+      const  notifications = await getUserNotifications(req,res,username);
   
       // Send the fetched notifications as the response
       return res.json(notifications);

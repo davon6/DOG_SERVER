@@ -67,19 +67,20 @@ const getUsersWithDogsExcludingUser = async (userId) => {
 const findDogByUserId = async (userId) => {
     const query = `
         SELECT 
-            dog_name AS "dogName", 
-            d_color AS "dogColor", 
-            d_weight AS "dogWeight", 
-            d_race AS "dogRace", 
-            last_locat_lat AS "lastLocationLat", 
-            last_locat_long AS "lastLocationLong", 
-            d_size AS "dogSize", 
-            d_age AS "dogAge", 
-            d_personality AS "dogPersonality", 
-            d_hobbies AS "dogHobbies"
-        FROM user_dog
-        WHERE user_id = $1;
+            "DOG_NAME" AS "dogName", 
+            "D_COLOR" AS "dogColor", 
+            "D_WEIGHT" AS "dogWeight", 
+            "D_RACE" AS "dogRace", 
+            "LAST_LOCAT_LAT" AS "lastLocationLat", 
+            "LAST_LOCAT_LONG" AS "lastLocationLong", 
+            "D_SIZE" AS "dogSize", 
+            "D_AGE" AS "dogAge", 
+            "D_PERSONALITY" AS "dogPersonality", 
+            "D_HOBBIES" AS "dogHobbies"
+        FROM public."USER_DOG" 
+        WHERE "USER_ID" = $1;
     `;
+
     const result = await executeQuery(query, [userId]);
     return result.rows[0];
 };
@@ -96,7 +97,7 @@ const findUserByUsername = async (username) => {
 // Find user ID by username
 const findUserIdByUsername = async (username) => {
     const query = `
-        SELECT id FROM users WHERE username = $1;
+        SELECT id FROM "public"."users" WHERE "USERNAME" = $1;
     `;
     const result = await executeQuery(query, [username]);
     return result.rows[0] || null;
@@ -176,10 +177,10 @@ const saveupUserLastLocation = async (username, lat, long) => {
     if (!user) throw new Error('User not found');
 
     const query = `
-        UPDATE user_dog
-        SET last_locat_lat = $1,
-            last_locat_long = $2
-        WHERE user_id = $3;
+        UPDATE USER_DOG
+        SET LAST_LOCAT_LAT = $1,
+            LAST_LOCAT_LONG = $2
+        WHERE USER_ID = $3;
     `;
     await executeQuery(query, [lat, long, user.id]);
     console.log('User location updated successfully');

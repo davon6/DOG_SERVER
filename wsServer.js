@@ -27,7 +27,13 @@ function initializeWebSocketServer(server) {
         }
 
         const { id } = await UserModel.findUserByUsername(username);
+
+        console.log("lets postgre get the dog")
+
         const dog = await UserModel.findDogByUserId(id);
+
+
+        console.log("we got the dog the dog")
 
         clients.set(username, { ws, id, dog, isConnected: true, date: 'none' });
         console.log(`User ${username} connected`);
