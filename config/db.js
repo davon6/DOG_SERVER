@@ -7,7 +7,7 @@ const config = {
     password: 'docpilot',
     host: 'autorack.proxy.rlwy.net', // Update with your PostgreSQL server host
     port: 47271, // Default PostgreSQL port
-    database: 'MAXIME', // Your database name
+    database: 'railway', // Your database name
     ssl: { rejectUnauthorized: false }, // Use this if you need SSL (e.g., for production or hosted DBs)
 };
 

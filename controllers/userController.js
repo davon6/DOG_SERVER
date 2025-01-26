@@ -77,16 +77,16 @@ const signup = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         
         // Create new user in the database
-        const newUser = await UserModel.createUser(username, email, hashedPassword,  dogName, dogColor, dogWeight, dogRace , dogSex, dogSize, dogAge, dogPersonality, dogHobbies);
+        const id = await UserModel.createUser(username, email, hashedPassword,  dogName, dogColor, dogWeight, dogRace , dogSex, dogSize, dogAge, dogPersonality, dogHobbies);
  
-      //  console.log( 'User created successfully'+ newUser[0].userId  );
+        console.log( 'User created successfully'+ id  );
 
-        const token = jwt.sign({userId: newUser[0].userId }, privateKey, { algorithm: 'RS256', expiresIn: '10s' });//1h
+        const token = jwt.sign({userId: id }, privateKey, { algorithm: 'RS256', expiresIn: '1h' });//1h
 
-      //  console.log("here s your token")
+        console.log("here s your token")
 
          // Generate Refresh Token (longer expiration)
-        const refreshToken = jwt.sign({ userId: newUser[0].userId }, privateKey, { algorithm: 'RS256', expiresIn: '7d' });
+        const refreshToken = jwt.sign({ userId: id }, privateKey, { algorithm: 'RS256', expiresIn: '7d' });
        
         res.status(201).json({token, refreshToken});
 

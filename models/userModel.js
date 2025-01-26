@@ -1,431 +1,197 @@
-const { sql, poolPromise } = require('../config/db');
+const { pool } = require('../config/db'); // Use the PostgreSQL pool
 
-// Initialize pool once for the entire module
-let pool;
-const initPool = async () => {
-    if (!pool) {
-        pool = await poolPromise;
-        console.log("Database pool initialized");
+// Initialize a query execution function
+const executeQuery = async (query, params = []) => {
+    const client = await pool.connect();
+    try {
+        const result = await client.query(query, params);
+        return result;
+    } finally {
+        client.release();
     }
 };
 
-// Create User
+// Create User and Dog
 const createUser = async (username, email, password, dogName, dogColor, dogWeight, dogRace, dogSex, dogSize, dogAge, dogPersonality, dogHobbies) => {
-    await initPool();  // Ensure pool is initialized
-
+    const client = await pool.connect();
     try {
-        const transaction = new sql.Transaction(pool);
-        await transaction.begin();
-        const request = new sql.Request(transaction);
+        await client.query('BEGIN'); // Start transaction
 
-        // Insert the user
-        const userResult = await request
-            .input('username', sql.VarChar, username)
-            .input('email', sql.VarChar, email)
-            .input('password', sql.VarChar, password)
-            .query('INSERT INTO USERS (USERNAME, EMAIL, PASSWORD) OUTPUT INSERTED.ID AS userId VALUES (@username, @email, @password)');
-        
-        const userId = userResult.recordset[0].userId;
-        console.log("User inserted with ID:", userId);
+console.log("starting our signIn");
 
-        // Insert the dog
-        await request
-            .input('dogName', sql.VarChar, dogName)
-            .input('userId', sql.Int, userId)
-            .input('dogColor', sql.VarChar, dogColor)
-            .input('dogWeight', sql.VarChar, dogWeight)
-            .input('dogRace', sql.VarChar, dogRace)
-            .input('dogSex', sql.Int, dogSex)
-            .input('lastLocLat', sql.Decimal, null)
-            .input('lastLocLong', sql.Decimal, null)
-            .input('dogHobbies', sql.VarChar, dogHobbies)
-            .input('dogPersonality', sql.VarChar, dogPersonality)
-            .input('dogAge', sql.Decimal, dogAge)
-            .input('dogSize', sql.VarChar, dogSize)
-            .query(`INSERT INTO USER_DOG (DOG_NAME, USER_ID, D_COLOR, D_WEIGHT, D_RACE, D_SEX, LAST_LOCAT_LAT, LAST_LOCAT_LONG, D_HOBBIES, D_AGE, D_SIZE, D_PERSONALITY) 
-                    VALUES (@dogName, @userId, @dogColor, @dogWeight, @dogRace, @dogSex, @lastLocLat, @lastLocLong, @dogHobbies, @dogAge, @dogSize, @dogPersonality )`);
+        // Insert user
+        const userQuery = `
+            INSERT INTO public.users ("USERNAME", "EMAIL" , "PASSWORD")
+            VALUES ($1, $2, $3)
+            RETURNING id;
+        `;
+        const userResult = await client.query(userQuery, [username, email, password]);
+        const {id } = userResult.rows[0];
 
-        await transaction.commit();
-        console.log("User and dog inserted successfully");
+        console.log("----->>>>>>",id);
 
-        return userResult.recordset;
+        // Insert dog
+        const dogQuery = `
+    INSERT INTO public."USER_DOG" 
+    ("DOG_NAME", "USER_ID", "D_COLOR", "D_WEIGHT", "D_RACE", "D_SEX", "LAST_LOCAT_LAT", "LAST_LOCAT_LONG", "D_HOBBIES", "D_AGE", "D_SIZE", "D_PERSONALITY")
+    VALUES ($1, $2, $3, $4, $5, $6, NULL, NULL, $7, $8, $9, $10);
+`;
+
+        await client.query(dogQuery, [dogName, id, dogColor, dogWeight, dogRace, dogSex, dogHobbies, dogAge, dogSize, dogPersonality]);
+
+        await client.query('COMMIT'); // Commit transaction
+        console.log('User and dog inserted successfully');
+        return id;
     } catch (error) {
-        console.error("Error executing transaction:", error.message);
-        if (transaction) await transaction.rollback();
+        await client.query('ROLLBACK'); // Rollback transaction
+        console.error('Error executing transaction:', error.message);
         throw error;
+    } finally {
+        client.release();
     }
 };
 
-
-
+// Get users with dogs excluding a specific user
 const getUsersWithDogsExcludingUser = async (userId) => {
-    try {
-        await initPool();
-        // Use a parameterized query to exclude the userId
-        const result = await pool.request()
-            .input('userId', sql.Int, userId) // Pass userId as a parameter
-            .query(`
-                     SELECT u.id, u.username, d.dog_name
-                     FROM users u
-                     INNER JOIN user_dog d ON u.id = d.USER_ID
-                WHERE u.id != @userId AND u.is_deleted != 1;
-            `);
-
-        console.log('Query result:', result.recordset); // Debugging log
-        return result.recordset;
-    } catch (error) {
-        console.error('Database query failed:', error);
-        throw error;
-    }
+    const query = `
+        SELECT u.id, u.username, d.dog_name
+        FROM users u
+        INNER JOIN user_dog d ON u.id = d.user_id
+        WHERE u.id != $1 AND u.is_deleted != TRUE;
+    `;
+    const result = await executeQuery(query, [userId]);
+    return result.rows;
 };
-  
 
+// Find dog by user ID
 const findDogByUserId = async (userId) => {
-    await initPool();
-    console.log("Searching for dog with userId:", userId);
-
     const query = `
         SELECT 
-            DOG_NAME AS dogName, 
-            D_COLOR AS dogColor, 
-            D_WEIGHT AS dogWeight, 
-            D_RACE AS dogRace, 
-            USER_ICON AS userIcon, 
-            LAST_LOCAT_LAT AS lastLocationLat, 
-            LAST_LOCAT_LONG AS lastLocationLong, 
-            D_SIZE AS dogSize, 
-            D_AGE AS dogAge, 
-            D_PERSONALITY AS dogPersonality, 
-            D_HOBBIES AS dogHobbies
-        FROM USER_DOG
-        WHERE USER_ID = @userId
+            dog_name AS "dogName", 
+            d_color AS "dogColor", 
+            d_weight AS "dogWeight", 
+            d_race AS "dogRace", 
+            last_locat_lat AS "lastLocationLat", 
+            last_locat_long AS "lastLocationLong", 
+            d_size AS "dogSize", 
+            d_age AS "dogAge", 
+            d_personality AS "dogPersonality", 
+            d_hobbies AS "dogHobbies"
+        FROM user_dog
+        WHERE user_id = $1;
     `;
-
-    const dogResult = await pool.request()
-        .input('userId', sql.Int, userId)
-        .query(query);
-
-    console.log("Dog found:", JSON.stringify(dogResult.recordset[0])); // Debugging output
-    return dogResult.recordset[0]; // Return the first record
+    const result = await executeQuery(query, [userId]);
+    return result.rows[0];
 };
 
-
-
-
-// Find User by Username
+// Find user by username
 const findUserByUsername = async (username) => {
-    await initPool();
-   // console.log("Finding user by username:", username);
-
-    const result = await pool.request()
-        .input('username', sql.VarChar, username)
-        .query('SELECT * FROM USERS WHERE USERNAME = @username');
-
-    if (result.recordset.length === 0) {
-        console.log("User not found");
-        return null;
-    }
-
-   // console.log("User found:", result.recordset[0]);
-    return result.recordset[0];
+    const query = `
+        SELECT * FROM "public"."users" WHERE "USERNAME" = $1;
+    `;
+    const result = await executeQuery(query, [username]);
+    return result.rows[0] || null;
 };
 
-
+// Find user ID by username
 const findUserIdByUsername = async (username) => {
-    await initPool();
-    console.log("Finding user by username:", username);
-
-    const result = await pool.request()
-        .input('username', sql.VarChar, username)
-        .query('SELECT id FROM USERS WHERE USERNAME = @username');
-
-    if (result.recordset.length === 0) {
-        console.log("User not found");
-        return null;
-    }
-
-   // console.log("User found:", result.recordset[0]);
-    return result.recordset[0];
+    const query = `
+        SELECT id FROM users WHERE username = $1;
+    `;
+    const result = await executeQuery(query, [username]);
+    return result.rows[0] || null;
 };
 
-// Find User by Username
-const findUsersByUsername = async (username, userNameFriend) => {
-    await initPool();
-    console.log("Finding users by username:", username, userNameFriend);
-
-    const result = await pool.request()
-        .input('username', sql.VarChar, username)
-        .input('username2', sql.VarChar, userNameFriend)
-        .query('SELECT id, USERNAME FROM USERS WHERE USERNAME = @username OR USERNAME = @username2');
-
-    if (result.recordset.length === 0) {
-        console.log("User not found");
-        return null;
-    }
-
-    // Map the result to ensure the order matches the input usernames
-    const userMap = result.recordset.reduce((map, user) => {
-        map[user.USERNAME] = user.id;
-        return map;
-    }, {});
-
-    const id1 = userMap[username];
-    const id2 = userMap[userNameFriend];
-
-    if (!id1 || !id2) {
-        console.log("One or both users not found");
-        return null;
-    }
-
-    console.log("User IDs found:", { id1, id2 });
-    return [id1, id2];
-};
-
-
-const findUsersForConversation = async (senderUsername, receiverUsername) => {
-    try {
-        await initPool();
-        console.log("Finding users by username:", senderUsername, receiverUsername);
-
-        // Safely parameterized query
-        const result = await pool.request()
-            .input('senderUsername', sql.VarChar, senderUsername)
-            .input('receiverUsername', sql.VarChar, receiverUsername)
-            .query(`
-                SELECT id, Username FROM Users
-                WHERE Username IN (@senderUsername, @receiverUsername)
-            `);
-
-        const users = result.recordset;
-
-
-       // console.log("so user found "+ JSON.stringify(users))
-
-        // Check if both users were found
-        if (users.length < 2) {
-            throw new Error('One or both users not found');
-        }
-
-        return users;
-
-    } catch (error) {
-        console.error("Error in findUsersForConversation:", error);
-        throw error; // Let the calling function handle the error response
-    }
-};
-
-
+// Update user and dog's fields
 const updateUser = async (userId, fieldsToUpdate) => {
     const fieldMapping = {
-      dogName: 'DOG_NAME',
-      dogColor: 'D_COLOR',
-      dogWeight: 'D_WEIGHT',
-      dogRace: 'D_RACE',
-      dogSex: 'D_SEX',
-      userIcon: 'USER_ICON',
-      lastLocationLat: 'LAST_LOCAT_LAT',
-      lastLocationLong: 'LAST_LOCAT_LONG',
-      dogSize: 'D_SIZE',
-      dogAge: 'D_AGE',
-      dogPersonality: 'D_PERSONALITY',
-      dogHobbies: 'D_HOBBIES',
+        dogName: 'dog_name',
+        dogColor: 'd_color',
+        dogWeight: 'd_weight',
+        dogRace: 'd_race',
+        dogSex: 'd_sex',
+        lastLocationLat: 'last_locat_lat',
+        lastLocationLong: 'last_locat_long',
+        dogSize: 'd_size',
+        dogAge: 'd_age',
+        dogPersonality: 'd_personality',
+        dogHobbies: 'd_hobbies',
     };
-  
-    const setClauses = Object.keys(fieldsToUpdate)
-      .map((key, index) => `${fieldMapping[key]} = @value${index}`)
-      .join(', ');
 
-      console.log("stay strong =",setClauses);
-  
+    const setClauses = Object.entries(fieldsToUpdate)
+        .map(([key, value], index) => `${fieldMapping[key]} = $${index + 2}`)
+        .join(', ');
+
     const query = `
-      UPDATE USER_DOG
-      SET ${setClauses}
-      WHERE USER_ID = @userId
+        UPDATE user_dog
+        SET ${setClauses}
+        WHERE user_id = $1;
     `;
+    const values = [userId, ...Object.values(fieldsToUpdate)];
+    await executeQuery(query, values);
+    console.log('User dog details updated successfully');
+};
 
-   
-  
-    const request = pool.request();
-    request.input('userId', sql.Int, userId);
-
-
-    Object.entries(fieldsToUpdate).forEach(([key, value], index) => {
-        console.log("tell me more " + index);
-
-        // Use the key to determine the database type
-        switch (key) {
-            case 'dogAge':
-                request.input(`value${index}`, sql.Decimal, value);
-                break;
-
-            case 'lastLocationLat':
-            case 'lastLocationLong':
-                request.input(`value${index}`, sql.Float, value);
-                break;
-
-            default:
-                request.input(`value${index}`, sql.NVarChar, value);
-                break;
-        }
-    }); 
-  
-    /*
-    Object.values(fieldsToUpdate).forEach((value, index) => {
-
-        console.log("tell me more  "+index);
-
-        switch (key) {
-            case 'dogAge':
-                request.input(`value${index}`, sql.Decimal, value);
-                break;
-
-            default:  request.input(`value${index}`, sql.NVarChar, value);
-            break;
-
-    }
-        
-    
-    });*/
-
-
+// Sign out user
+const signout = async (id, username) => {
+    const client = await pool.connect();
     try {
-        const result = await request.query(query);
-        console.log('Update successful:', result);
-        return result;
-      } catch (error) {
-        console.error('Error updating user:', error);
-        throw error; // Rethrow for handling by caller
-      }
-  
-   // return request.query(query);
-  };
+        await client.query('BEGIN');
+        const negativeId = id * -1;
+        const deletedUsername = `removed_usr_${username}`;
 
+        // Perform multiple updates/deletes as part of signout
+        const queries = [
+            `UPDATE users SET password = 'finito', is_deleted = TRUE WHERE id = $1;`,
+            `INSERT INTO users (id, username, email, password, role, status, created_at)
+             VALUES ($1, $2, '', '', 'user', 'inactive', NOW());`,
+            `UPDATE messages SET user_id = $1 WHERE user_id = $2;`,
+            `UPDATE conversations SET user_id1 = $1 WHERE user_id1 = $2;`,
+            `UPDATE participants SET user_id = $1 WHERE user_id = $2;`,
+            `UPDATE friends
+             SET id = CASE WHEN id = $2 THEN $1 ELSE id END,
+                 friend_id = CASE WHEN friend_id = $2 THEN $1 ELSE friend_id END
+             WHERE id = $2 OR friend_id = $2;`,
+            `DELETE FROM notifications WHERE user_id = $1 OR related_user_id = $1;`,
+        ];
 
-  const signout = async (id, username) => {
-    try {
-        await initPool();
-       // console.log("signout in model ", id, username,id *= -1);
+        await Promise.all(
+            queries.map((query, index) => client.query(query, [negativeId, id, deletedUsername][index]))
+        );
 
-        var negativeNewId=id * -1;
-        var deletedTempUsrName = "removed_usr_"+username;
-
-
-        console.log("Parameters: id =", id, ", negativeNewId =", negativeNewId, ", username =", username);
-
-
-
-        // Safely parameterized query
-        const result = await pool.request()
-            .input('id', sql.Int, id)
-            .input('negativeNewId', sql.Int, negativeNewId)
-            .input('username', sql.VarChar, deletedTempUsrName)
-            .query(`
-            UPDATE Users SET  PASSWORD='finito', is_deleted=1 WHERE id = @id;
-            SET IDENTITY_INSERT Users ON;
-            INSERT INTO Users (id, username, email, password, role, status, created_at)
-            VALUES (@negativeNewId, @username, @negativeNewId, @negativeNewId, 'user', 'unactive', GETDATE());
-            SET IDENTITY_INSERT Users OFF;
-            UPDATE Messages SET UserID = @negativeNewId WHERE UserID = @id;
-            UPDATE Conversations SET UserID1 = @negativeNewId  WHERE UserID1 = @id; 
-            UPDATE Participants SET UserID = @negativeNewId WHERE UserID = @id;
-            
-            
-             UPDATE Friends
-            SET 
-     id = CASE WHEN id = @id THEN @negativeNewId ELSE id END,
-     friend_id = CASE WHEN friend_id = @id THEN @negativeNewId ELSE friend_id END
- WHERE id = @id OR friend_id = @id;
-
-
-
-            DELETE FROM Notifications WHERE userId = @id OR relatedUserId = @id;
- `);
-
- 
-/*
- UPDATE Friends
-            SET id = CASE WHEN id = @id THEN @negativeNewId ELSE id END, friend_id = CASE WHEN friend_id = @id THEN @negativeNewId ELSE friend_id END WHERE id = @id OR friend_id = @id;
-            DELETE FROM Users WHERE id = @id;
-*/
-
-
-
-
-/*
-            SELECT id, Username FROM Users
-            WHERE id = @id
-        */
-        console.log(" result from sign out "+ JSON.stringify(result) );
-
-
-       // console.log("so user found "+ JSON.stringify(users))
-
-        // Check if both users were found
-
-        return result;
-
+        await client.query('COMMIT');
+        console.log('User signed out successfully');
     } catch (error) {
-        console.error("Error in signout:", error);
-        throw error; // Let the calling function handle the error response
+        await client.query('ROLLBACK');
+        console.error('Error in signout:', error);
+        throw error;
+    } finally {
+        client.release();
     }
 };
-  
 
+// Save user's last location
 const saveupUserLastLocation = async (username, lat, long) => {
-    const {id }= await findUserIdByUsername(username);
+    const user = await findUserIdByUsername(username);
+    if (!user) throw new Error('User not found');
 
-console.log("saveup loc atin we got the userid)", id)
-
-    try {
-        await initPool(); // Initialize the database connection pool
-
-        const query = `
-            UPDATE USER_DOG
-            SET LAST_LOCAT_LAT = @lat,
-                LAST_LOCAT_LONG = @long
-            WHERE USER_ID = @id
-        `;
-
-        const loginQuery = `
-        UPDATE USERS
-        SET LAST_LOGIN = @lastLogin
-        WHERE ID = @id
+    const query = `
+        UPDATE user_dog
+        SET last_locat_lat = $1,
+            last_locat_long = $2
+        WHERE user_id = $3;
     `;
-
-    // Get the current datetime
-    const currentDateTime = new Date();
-
-        const pool = await sql.connect(); // Ensure connection is initialized
-        await pool.request()
-            .input('lat', sql.Decimal(10, 6), lat)    // Bind latitude
-            .input('long', sql.Decimal(10, 6), long)  // Bind longitude
-            .input('id', sql.Int, id)        // Bind user ID
-            .query(query);
-
-        console.log('User location updated successfully');
-
-           // Update last login in USERS
-           await pool.request()
-           .input('lastLogin', sql.DateTime, currentDateTime) // Bind current date and time
-           .input('id', sql.Int, id)                         // Bind user ID
-           .query(loginQuery);
-
-       console.log('User last login time updated successfully');
-    } catch (err) {
-        console.error('Error updating user location:', err);
-    }
+    await executeQuery(query, [lat, long, user.id]);
+    console.log('User location updated successfully');
 };
-
 
 module.exports = {
     createUser,
-    findUserByUsername,
-    findUsersByUsername,
-    findDogByUserId,
-    findUsersForConversation,
     getUsersWithDogsExcludingUser,
+    findDogByUserId,
+    findUserByUsername,
     findUserIdByUsername,
     updateUser,
     signout,
-    saveupUserLastLocation
+    saveupUserLastLocation,
 };
