@@ -56,7 +56,7 @@ const getUsersWithDogsExcludingUser = async (userId) => {
     const query = `
         SELECT u.id, u.username, d.dog_name
         FROM users u
-        INNER JOIN user_dog d ON u.id = d.user_id
+        INNER JOIN public."USER_DOG" d ON u.id = d.user_id
         WHERE u.id != $1 AND u.is_deleted != TRUE;
     `;
     const result = await executeQuery(query, [userId]);
@@ -177,7 +177,7 @@ const saveupUserLastLocation = async (username, lat, long) => {
     if (!user) throw new Error('User not found');
 
     const query = `
-        UPDATE USER_DOG
+        UPDATE public."USER_DOG"
         SET LAST_LOCAT_LAT = $1,
             LAST_LOCAT_LONG = $2
         WHERE USER_ID = $3;
