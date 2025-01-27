@@ -2,14 +2,14 @@ const  { pool }= require('../config/db'); // Ensure this connects to your Postgr
 
 class Notification {
   // Method to create a new notification
-  static async createNotification(userId, type, relatedUserId, extraData) {
+  static async createNotification(userId, type, relateduserId, extraData) {
     const query = `
-      INSERT INTO notifications (user_id, type, related_user_id, extra_data, is_read, created_at)
+      INSERT INTO "public"."Notifications" ("userId", type, "relatedUserId", "extraData", "isRead", "createdAt")
       VALUES ($1, $2, $3, $4, false, NOW());
     `;
 
     try {
-      await pool.query(query, [userId, type, relatedUserId, extraData]);
+      await pool.query(query, [userId, type, relateduserId, extraData]);
     } catch (error) {
       console.error('Error creating notification:', error);
       throw error;
@@ -46,8 +46,8 @@ class Notification {
   // Method to mark a notification as read
   static async markAsRead(notificationId) {
     const query = `
-      UPDATE notifications
-      SET is_read = true
+      UPDATE  "public"."Notifications"
+      SET "isRead" = true
       WHERE id = $1;
     `;
 
@@ -65,14 +65,14 @@ class Notification {
 
     if (response === 'accept') {
       query = `
-        UPDATE notifications
-        SET type = 'friend_accepted', is_read = false
+        UPDATE  "public"."Notifications"
+        SET type = 'friend_accepted', isRead = false
         WHERE id = $1;
       `;
     } else if (response === 'decline') {
       query = `
-        UPDATE notifications
-        SET type = 'friend_declined', is_read = false
+        UPDATE "public"."Notifications"
+        SET type = 'friend_declined', isRead = false
         WHERE id = $1;
       `;
     } else {
@@ -91,7 +91,7 @@ class Notification {
   // Method to delete a notification
   static async deleteNotification(notificationId) {
     const query = `
-      DELETE FROM notifications
+      DELETE FROM "public"."Notifications"
       WHERE id = $1;
     `;
 
@@ -106,9 +106,9 @@ class Notification {
   // Method to fetch unread notifications for a user
   static async getUnreadNotifications(userId) {
     const query = `
-      SELECT id, user_id, type, extra_data, is_read, created_at
-      FROM notifications
-      WHERE user_id = $1 AND is_read = false;
+      SELECT id, userId, type, extraData, isRead, createdAt
+      FROM "public"."Notifications"
+      WHERE userId = $1 AND isRead = false;
     `;
 
     try {

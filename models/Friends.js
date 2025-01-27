@@ -25,41 +25,55 @@ const getFriends = async (userId) => {
 };
 
 // Add a friend request
-const addFriendRequest = async (userId, friendId) => {
+const addFriendRequest = async (userId, friend_id) => {
+  const client = await pool.connect();
   try {
-    const query = `
-      INSERT INTO friends (id, friend_id, request_accepted, created_at)
+    await client.query('BEGIN'); // Start a transaction
+
+    const query1 = `
+      INSERT INTO "public"."Friends" (id, friend_id, request_accepted, created_at)
       VALUES ($1, $2, false, NOW());
-      INSERT INTO friends (id, friend_id, request_accepted, created_at)
+    `;
+    const query2 = `
+      INSERT INTO "public"."Friends" (id, friend_id, request_accepted, created_at)
       VALUES ($2, $1, false, NOW());
     `;
-    await pool.query(query, [userId, friendId]);
+
+    // Execute the first INSERT
+    await client.query(query1, [userId, friend_id]);
+    // Execute the second INSERT
+    await client.query(query2, [userId, friend_id]);
+
+    await client.query('COMMIT'); // Commit the transaction
     return { message: 'Friend request sent' };
   } catch (error) {
+    await client.query('ROLLBACK'); // Rollback the transaction on error
     console.error("Error sending friend request:", error);
     throw error;
+  } finally {
+    client.release(); // Release the database connection
   }
 };
 
 // Accept a friend request
-const acceptFriendRequest = async (userId, friendId, username, relatedUsername) => {
+const acceptFriendRequest = async (userId, friend_id, username, relatedUsername) => {
   try {
     const query = `
-      UPDATE friends
+      UPDATE "public"."Friends"
       SET request_accepted = true
       WHERE id = $1 AND friend_id = $2;
     `;
-    await pool.query(query, [userId, friendId]);
+    await pool.query(query, [userId, friend_id]);
 
     const checkQuery = `
       SELECT COUNT(*) AS match_count
-      FROM friends
+      FROM "public"."Friends"
       WHERE 
         (id = $1 AND friend_id = $2 AND request_accepted = true)
         OR
         (id = $2 AND friend_id = $1 AND request_accepted = true);
     `;
-    const { rows } = await pool.query(checkQuery, [userId, friendId]);
+    const { rows } = await pool.query(checkQuery, [userId, friend_id]);
 
     const matchCount = parseInt(rows[0].match_count, 10);
 
@@ -83,14 +97,14 @@ const acceptFriendRequest = async (userId, friendId, username, relatedUsername) 
 };
 
 // Remove a friend
-const removeFriend = async (userId, friendId) => {
+const removeFriend = async (userId, friend_id) => {
   try {
     const query = `
-      DELETE FROM friends
+      DELETE FROM "public"."Friends"
       WHERE (id = $1 AND friend_id = $2)
          OR (id = $2 AND friend_id = $1);
     `;
-    await pool.query(query, [userId, friendId]);
+    await pool.query(query, [userId, friend_id]);
     return { message: 'Friend removed' };
   } catch (error) {
     console.error("Error removing friend:", error);
@@ -107,32 +121,32 @@ const getFriendRelationship = async (userId, otherUserId) => {
           WHEN (
             EXISTS (
               SELECT 1
-              FROM friends f1
+              FROM "public"."Friends" f1
               WHERE f1.id = $1 AND f1.friend_id = $2 AND f1.request_accepted = true
             )
             AND EXISTS (
               SELECT 1
-              FROM friends f2
+              FROM "public"."Friends" f2
               WHERE f2.id = $2 AND f2.friend_id = $1 AND f2.request_accepted = true
             )
           ) THEN 'friends'
           WHEN (
             EXISTS (
               SELECT 1
-              FROM friends f1
+              FROM "public"."Friends" f1
               WHERE f1.id = $1 AND f1.friend_id = $2 AND f1.request_accepted = false
             )
           ) THEN 'sent'
           WHEN (
             EXISTS (
               SELECT 1
-              FROM friends f1
+              FROM "public"."Friends" f1
               WHERE f1.id = $2 AND f1.friend_id = $1 AND f1.request_accepted = false
             )
           ) THEN 'received'
           ELSE 'none'
         END AS relationship
-      FROM friends
+      FROM "public"."Friends"
       WHERE (id = $1 AND friend_id = $2)
          OR (id = $2 AND friend_id = $1);
     `;
@@ -145,15 +159,15 @@ const getFriendRelationship = async (userId, otherUserId) => {
 };
 
 // Delete a friend request
-const deleteFriendRequest = async (userId, friendId) => {
+const deleteFriendRequest = async (userId, friend_id) => {
   try {
     const query = `
-      DELETE FROM friends
+      DELETE FROM "public"."Friends"
       WHERE id = $1 AND friend_id = $2;
-      DELETE FROM friends
+      DELETE FROM "public"."Friends"
       WHERE id = $2 AND friend_id = $1;
     `;
-    await pool.query(query, [userId, friendId]);
+    await pool.query(query, [userId, friend_id]);
     return { message: 'Friend request deleted' };
   } catch (error) {
     console.error('Error deleting friend request:', error);

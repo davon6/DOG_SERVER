@@ -54,9 +54,9 @@ console.log("starting our signIn");
 // Get users with dogs excluding a specific user
 const getUsersWithDogsExcludingUser = async (userId) => {
     const query = `
-        SELECT u.id, u.username, d.dog_name
+        SELECT u.id, u."USERNAME", d."DOG_NAME"
         FROM users u
-        INNER JOIN public."USER_DOG" d ON u.id = d.user_id
+        INNER JOIN "public"."USER_DOG" d ON u.id = d."USER_ID"
         WHERE u.id != $1 AND u.is_deleted != TRUE;
     `;
     const result = await executeQuery(query, [userId]);
@@ -106,17 +106,17 @@ const findUserIdByUsername = async (username) => {
 // Update user and dog's fields
 const updateUser = async (userId, fieldsToUpdate) => {
     const fieldMapping = {
-        dogName: 'dog_name',
-        dogColor: 'd_color',
-        dogWeight: 'd_weight',
-        dogRace: 'd_race',
-        dogSex: 'd_sex',
-        lastLocationLat: 'last_locat_lat',
-        lastLocationLong: 'last_locat_long',
-        dogSize: 'd_size',
-        dogAge: 'd_age',
-        dogPersonality: 'd_personality',
-        dogHobbies: 'd_hobbies',
+        dogName: '"DOG_NAME"',
+        dogColor: '"D_COLOR"',
+        dogWeight: '"D_WEIGHT"',
+        dogRace: '"D_RACE"',
+        dogSex: '"D_SEX"',
+        lastLocationLat: '"LAST_LOCAT_LAT"',
+        lastLocationLong: '"LAST_LOCAT_LONG"',
+        dogSize: '"D_SIZE"',
+        dogAge: '"D_AGE"',
+        dogPersonality: '"D_PERSONALITY"',
+        dogHobbies: '"D_HOBBIES"',
     };
 
     const setClauses = Object.entries(fieldsToUpdate)
@@ -124,9 +124,9 @@ const updateUser = async (userId, fieldsToUpdate) => {
         .join(', ');
 
     const query = `
-        UPDATE user_dog
+        UPDATE "public"."USER_DOG"
         SET ${setClauses}
-        WHERE user_id = $1;
+        WHERE "USER_ID" = $1;
     `;
     const values = [userId, ...Object.values(fieldsToUpdate)];
     await executeQuery(query, values);
@@ -143,17 +143,17 @@ const signout = async (id, username) => {
 
         // Perform multiple updates/deletes as part of signout
         const queries = [
-            `UPDATE users SET password = 'finito', is_deleted = TRUE WHERE id = $1;`,
-            `INSERT INTO users (id, username, email, password, role, status, created_at)
+            `UPDATE users SET password = 'finito', isDeleted = TRUE WHERE id = $1;`,
+            `INSERT INTO "public"."users" (id, USERNAME, EMAIL, PASSWORD, role, status, created_at)
              VALUES ($1, $2, '', '', 'user', 'inactive', NOW());`,
-            `UPDATE messages SET user_id = $1 WHERE user_id = $2;`,
-            `UPDATE conversations SET user_id1 = $1 WHERE user_id1 = $2;`,
-            `UPDATE participants SET user_id = $1 WHERE user_id = $2;`,
-            `UPDATE friends
+            `UPDATE "public"."Messages" SET userId = $1 WHERE userId = $2;`,
+            `UPDATE "public"."Conversations" SET userId1 = $1 WHERE userId1 = $2;`,
+            `UPDATE "public"."Participants" SET userId = $1 WHERE userId = $2;`,
+            `UPDATE "public"."Friends"
              SET id = CASE WHEN id = $2 THEN $1 ELSE id END,
-                 friend_id = CASE WHEN friend_id = $2 THEN $1 ELSE friend_id END
-             WHERE id = $2 OR friend_id = $2;`,
-            `DELETE FROM notifications WHERE user_id = $1 OR related_user_id = $1;`,
+                 friendId = CASE WHEN friendId = $2 THEN $1 ELSE friendId END
+             WHERE id = $2 OR friendId = $2;`,
+            `DELETE FROM "public"."Notifications" WHERE userId = $1 OR relatedUserId = $1;`,
         ];
 
         await Promise.all(
@@ -186,6 +186,72 @@ const saveupUserLastLocation = async (username, lat, long) => {
     console.log('User location updated successfully');
 };
 
+const findUsersByUsername = async (username, userNameFriend) => {
+    console.log("Finding users by username:", username, userNameFriend);
+
+    const query = `
+        SELECT id, "USERNAME"
+        FROM public.users
+        WHERE "USERNAME" = $1 OR "USERNAME" = $2;
+    `;
+
+    const result = await executeQuery(query, [username, userNameFriend]);
+
+    if (result.rows.length === 0) {
+        console.log("User not found");
+        return null;
+    }
+
+    // Map the result to ensure the order matches the input usernames
+    const userMap = result.rows.reduce((map, user) => {
+        map[user.USERNAME] = user.id;
+        return map;
+    }, {});
+
+    const id1 = userMap[username];
+    const id2 = userMap[userNameFriend];
+
+    if (!id1 || !id2) {
+        console.log("One or both users not found");
+        return null;
+    }
+
+    console.log("User IDs found:", { id1, id2 });
+    return [id1, id2];
+};
+
+
+const findUsersForConversation = async (senderUsername, receiverUsername) => {
+    try {
+        console.log("Finding users by username:", senderUsername, receiverUsername);
+
+        // Parameterized query using PostgreSQL
+        const query = `
+            SELECT id, "USERNAME"
+            FROM public.users
+            WHERE "USERNAME" = $1 OR "USERNAME" = $2;
+        `;
+
+        // Execute the query with the input parameters
+        const result = await executeQuery(query, [senderUsername, receiverUsername]);
+
+        const users = result.rows;
+
+        // Check if both users were found
+        if (users.length < 2) {
+            throw new Error('One or both users not found');
+        }
+
+        return users;
+
+    } catch (error) {
+        console.error("Error in findUsersForConversation:", error);
+        throw error; // Let the calling function handle the error response
+    }
+};
+
+
+
 module.exports = {
     createUser,
     getUsersWithDogsExcludingUser,
@@ -195,4 +261,6 @@ module.exports = {
     updateUser,
     signout,
     saveupUserLastLocation,
+    findUsersByUsername,
+    findUsersForConversation
 };

@@ -10,12 +10,12 @@ class Message {
   static async markMessagesAsRead(conversationId) {
     try {
       const query = `
-        UPDATE message_status
-        SET is_read = true
-        WHERE message_id IN (
+        UPDATE messageStatus
+        SET isRead = true
+        WHERE messageId IN (
           SELECT id
-          FROM messages
-          WHERE conversation_id = $1
+          FROM "public"."Messages"
+          WHERE conversationId = $1
         );
       `;
       await pool.query(query, [conversationId]);
@@ -35,7 +35,7 @@ class Message {
     try {
       const query = `
         SELECT * 
-        FROM messages
+        FROM "public"."Messages"
         WHERE conversation_id = $1
         ORDER BY timestamp DESC;
       `;
