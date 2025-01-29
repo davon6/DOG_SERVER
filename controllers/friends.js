@@ -36,7 +36,7 @@ const sendFriendRequest = async (req, res) => {
 
   try {
     const result = await friendsModel.addFriendRequest(ids[0], ids[1]);
-    notificationsModel.createNotification(ids[0], 'friend_request', ids[1]);
+    notificationsModel.createNotification(ids[0], 'friend_request', ids[1],username, friendUsername);
     res.status(200).json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -115,10 +115,11 @@ const getFriendStatuses = async (req, res) => {
         const relationship = await friendsModel.getFriendRelationship(userId, user.id);
 
         const { id, ...userWithoutId } = user; // Destructure and omit the 'id' field
-        console.log("-->"+ JSON.stringify({ ...userWithoutId, relationship }));
         return { ...userWithoutId, relationship };
       })
     );
+
+    console.log("friendStatuses", JSON.stringify(friendStatuses));
 
     res.status(200).json(friendStatuses);
   } catch (error) {

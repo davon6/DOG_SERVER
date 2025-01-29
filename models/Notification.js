@@ -1,19 +1,30 @@
 const  { pool }= require('../config/db'); // Ensure this connects to your PostgreSQL database
+const { clients } = require('../wsServer');
 
 class Notification {
   // Method to create a new notification
-  static async createNotification(userId, type, relateduserId, extraData) {
+  static async createNotification(userId, type, relateduserId, username, friendUsername
+  ) {
     const query = `
-      INSERT INTO "public"."Notifications" ("userId", type, "relatedUserId", "extraData", "isRead", "createdAt")
-      VALUES ($1, $2, $3, $4, false, NOW());
+      INSERT INTO "public"."Notifications" ("userId", type, "relatedUserId",  "isRead", "createdAt")
+      VALUES ($1, $2, $3, false, NOW())
+       RETURNING id;
     `;
 
+    console.log("creating notification", userId, type, relateduserId, username, friendUsername);
+
     try {
-      await pool.query(query, [userId, type, relateduserId, extraData]);
+      const result = await pool.query(query, [userId, type, relateduserId]);
+      const client = clients.get(friendUsername);
+      if (client) {
+        client.ws.send(JSON.stringify({ notification: { type: 'friend_request', username: friendUsername, createdAt: new Date().toISOString(),"isRead": false , id:result.rows[0].id, related_username:username} }));
+      }
     } catch (error) {
       console.error('Error creating notification:', error);
       throw error;
     }
+
+
   }
 
   // Method to retrieve notifications for a specific user
@@ -32,8 +43,7 @@ class Notification {
       ORDER BY n."createdAt" DESC;
     `;
 
-    console.log("-------------------->>>>>>>> getUserNotifications --> postgreSQL")
-
+    
     try {
       const { rows } = await pool.query(query, [userId]);
       return rows;
@@ -66,13 +76,13 @@ class Notification {
     if (response === 'accept') {
       query = `
         UPDATE  "public"."Notifications"
-        SET type = 'friend_accepted', isRead = false
+        SET type = 'friend_accepted', "isRead" = false
         WHERE id = $1;
       `;
     } else if (response === 'decline') {
       query = `
         UPDATE "public"."Notifications"
-        SET type = 'friend_declined', isRead = false
+        SET type = 'friend_declined', "isRead" = false
         WHERE id = $1;
       `;
     } else {

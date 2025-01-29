@@ -44,9 +44,9 @@ class Conversation {
     try {
       // Insert the message into the Messages table and retrieve the MessageID
       const insertMessageQuery = `
-        INSERT INTO "Messages" ("ConversationID", "UserID", "Text", "Timestamp")
-        VALUES ($1, $2, $3, NOW())
-        RETURNING "MessageID", "Timestamp";
+ INSERT INTO "Messages" ("ConversationID", "UserID", "Text", "Timestamp")
+  VALUES ($1, $2, $3, NOW())
+  RETURNING "MessageID", ("Timestamp" AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Paris') AS "Timestamp";
       `;
       const messageResult = await pool.query(insertMessageQuery, [conversationId, userId, text]);
       const { MessageID, Timestamp } = messageResult.rows[0];
@@ -87,18 +87,20 @@ class Conversation {
       `;
       const participants = await pool.query(participantsQuery, [conversationId, senderUsername]);
 
+      console.log("Participants:", participants.rows);
+
       participants.rows.forEach(participant => {
-        const client = clients.get(participant.username);
+        const client = clients.get(participant.USERNAME);
 
         if (client) {
-          console.log("Sending notification to:", participant.username);
+          console.log("Sending notification to:", participant.USERNAME);
           client.ws.send(JSON.stringify({
             notification: {
               messageId,
               conversationId,
               senderUsername,
               text,
-              timestamp: Timestamp,
+              timestamp: new Date(Timestamp).toISOString(),
               isRead: false,
               type: "msg",
             },

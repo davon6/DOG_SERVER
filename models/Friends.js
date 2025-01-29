@@ -32,7 +32,7 @@ const addFriendRequest = async (userId, friend_id) => {
 
     const query1 = `
       INSERT INTO "public"."Friends" (id, friend_id, request_accepted, created_at)
-      VALUES ($1, $2, false, NOW());
+      VALUES ($1, $2, true, NOW());
     `;
     const query2 = `
       INSERT INTO "public"."Friends" (id, friend_id, request_accepted, created_at)
@@ -57,13 +57,17 @@ const addFriendRequest = async (userId, friend_id) => {
 
 // Accept a friend request
 const acceptFriendRequest = async (userId, friend_id, username, relatedUsername) => {
+
+
+console.log("acceptFriendRequest",userId, friend_id, username, relatedUsername);
+
   try {
     const query = `
       UPDATE "public"."Friends"
       SET request_accepted = true
       WHERE id = $1 AND friend_id = $2;
     `;
-    await pool.query(query, [userId, friend_id]);
+    await pool.query(query, [friend_id , userId]);
 
     const checkQuery = `
       SELECT COUNT(*) AS match_count
@@ -161,19 +165,27 @@ const getFriendRelationship = async (userId, otherUserId) => {
 // Delete a friend request
 const deleteFriendRequest = async (userId, friend_id) => {
   try {
-    const query = `
+    // First query: delete the friend request in one direction
+    const query1 = `
       DELETE FROM "public"."Friends"
       WHERE id = $1 AND friend_id = $2;
+    `;
+    await pool.query(query1, [userId, friend_id]);
+
+    // Second query: delete the friend request in the reverse direction
+    const query2 = `
       DELETE FROM "public"."Friends"
       WHERE id = $2 AND friend_id = $1;
     `;
-    await pool.query(query, [userId, friend_id]);
+    await pool.query(query2, [userId, friend_id]);
+
     return { message: 'Friend request deleted' };
   } catch (error) {
     console.error('Error deleting friend request:', error);
     throw error;
   }
 };
+
 
 module.exports = {
   getFriends,

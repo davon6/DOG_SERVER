@@ -8,15 +8,16 @@ class Message {
    * @returns {Object} - Success message.
    */
   static async markMessagesAsRead(conversationId) {
+
+console.log("marking messages as read", conversationId);
+
     try {
       const query = `
-        UPDATE messageStatus
-        SET isRead = true
-        WHERE messageId IN (
-          SELECT id
-          FROM "public"."Messages"
-          WHERE conversationId = $1
-        );
+     UPDATE "public"."MessageStatus" ms
+SET "IsRead" = true
+FROM "public"."Messages" m
+WHERE ms."MessageID" = m."MessageID"
+AND m."ConversationID" = $1;
       `;
       await pool.query(query, [conversationId]);
       return { success: true };

@@ -162,6 +162,8 @@ async function getUserNotifications(req, res, username) {
         // Assuming you have middleware to attach the userId
         const notifications = await Notification.getUserNotifications(id);
 
+console.log("noticacations found -->"+JSON.stringify(notifications));
+
         res.status(200).json({ notifications });
     } catch (error) {
         console.error(error);

@@ -46,12 +46,11 @@ console.log("hereeee"+ JSON.stringify(sender), JSON.stringify(receiver));
             const {MessageID, Timestamp} = await Conversation.addMessage(conversationId, user.id, text);
 
 console.log("notifyUsers(conversationId, messageID, ------>>>>>", JSON.stringify(Timestamp));
-
-
+res.json({ MessageID, success: true });
             await Conversation.notifyUsers(conversationId, MessageID, user.USERNAME, text, Timestamp);
 
 
-            res.json({ MessageID, success: true });
+           
         } catch (error) {
             console.error("Error in sendMessage:", error);
             res.status(500).json({ error: 'Internal server error' });
